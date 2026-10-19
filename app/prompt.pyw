@@ -1717,9 +1717,20 @@ class App:
             if int(frame.cget("height")) != max(1, y + line_h):
                 frame.configure(height=max(1, y + line_h))
 
+        # Geen update_idletasks() hier: Tk 9 op macOS crasht daarop als het scherm nog niet zichtbaar is.
+        # De opmaak volgt vanzelf zodra het frame een breedte krijgt (<Configure>) of Tk tijd heeft (after_idle).
         frame.bind("<Configure>", layout)
-        frame.update_idletasks()
-        layout()
+        frame.after_idle(layout)
+
+    def restore_scroll(self, canvas, position):
+        """Scrollgebied bijwerken en de scrollpositie terugzetten zodra Tk de nieuwe lijst heeft opgemeten."""
+        def apply():
+            try:
+                canvas.configure(scrollregion=canvas.bbox("all"))
+                canvas.yview_moveto(position)
+            except tk.TclError:
+                pass
+        canvas.after_idle(apply)
 
     def wrap_to(self, label, container, minus=0):
         container.bind("<Configure>", lambda e: label.configure(wraplength=max(120, e.width - minus)), add="+")
@@ -1816,7 +1827,6 @@ class App:
     def copy_text(self, text, pill=None, status=None):
         self.root.clipboard_clear()
         self.root.clipboard_append(text)
-        self.root.update_idletasks()
         self.set_status(status or f"Gekopieerd: {text}")
         self.toast(status or f"Gekopieerd: {shorten(text, 60)}")
         if pill is not None:
@@ -2078,9 +2088,7 @@ class App:
                     anchor="w", pady=(self.s(14), self.s(2)), padx=self.s(2))
                 for it in cats[cat]:
                     self.make_row(it)
-        self.list_frame.update_idletasks()
-        self.canvas.configure(scrollregion=self.canvas.bbox("all"))
-        self.canvas.yview_moveto(0 if terms else y)
+        self.restore_scroll(self.canvas, 0 if terms else y)
 
     def search_market_for_local(self):
         self.m_search_var.set(self.search_text)
@@ -2425,9 +2433,7 @@ class App:
                                  ("Naar instellingen", lambda: self.show_view("settings")))
         for s in items:
             self.make_market_row(s)
-        self.m_list.update_idletasks()
-        self.m_canvas.configure(scrollregion=self.m_canvas.bbox("all"))
-        self.m_canvas.yview_moveto(0 if terms else y)
+        self.restore_scroll(self.m_canvas, 0 if terms else y)
         self.update_market_info()
 
     def make_market_row(self, s):

@@ -3,6 +3,7 @@ tab, switch theme and accent, toggle a skill, then close. Skipped when there is 
 
     python -m unittest discover -s test -p "test_gui_smoke.py"
 """
+import faulthandler
 import importlib.machinery
 import importlib.util
 import tempfile
@@ -51,6 +52,8 @@ def pump(root, seconds):
 @unittest.skipUnless(HAS_DISPLAY, "no display available")
 class GuiSmoke(unittest.TestCase):
     def test_full_tour(self):
+        faulthandler.dump_traceback_later(90, exit=True)  # a hang prints where it is stuck instead of timing out
+        self.addCleanup(faulthandler.cancel_dump_traceback_later)
         skill = app.SKILLS_DIR / "demo"
         skill.mkdir(parents=True)
         (skill / "SKILL.md").write_text("---\nname: demo\ndescription: Demo skill. Use when testing.\n---\n\n# Demo\n",

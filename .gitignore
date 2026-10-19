@@ -1,0 +1,11 @@
+node_modules/
+dist/
+.DS_Store
+Thumbs.db
+__pycache__/
+app/state.json
+app/market_cache.json
+app/market_state.json
+app/error.log
+app/debug.log
+app/settings.json

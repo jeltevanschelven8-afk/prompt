@@ -1,0 +1,10 @@
+# Shell scripts must keep Unix line endings, also when the repo is checked out on Windows.
+*.sh       text eol=lf
+*.command  text eol=lf
+*.pyw      text eol=lf
+*.py       text eol=lf
+# Windows scripts keep Windows line endings.
+*.ps1      text eol=crlf
+*.cmd      text eol=crlf
+*.ico      binary
+*.png      binary

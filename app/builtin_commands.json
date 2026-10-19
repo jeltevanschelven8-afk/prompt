@@ -1,0 +1,477 @@
+{
+  "_uitleg": "Vaste lijst met plugin-skills en ingebouwde Claude Code-commands. Eigen skills en commands hoef je hier niet toe te voegen; die worden automatisch gelezen uit ~/.claude/skills en ~/.claude/commands (uitleg daarvoor staat in uitleg.json). Velden per command: description (korte regel), uitleg (wat het doet), wanneer (wanneer gebruiken), voorbeeld (wat je typt). Wijzigingen verschijnen binnen 2 seconden in Prompt.",
+  "groups": [
+    {
+      "category": "Plugins",
+      "commands": [
+        {
+          "command": "/anthropic-skills:stress-test-and-fix",
+          "description": "Probeert je eigen code te breken met vijandige input, fixt de bugs en schrijft regressietests.",
+          "uitleg": "Dezelfde skill als /stress-test-and-fix, maar dan de versie uit de Anthropic-plugin. Claude bepaalt wat je code belooft, bestookt die met lege, verkeerde, enorme en rare input plus race conditions en ontbrekende bestanden, fixt elke gevonden bug bij de oorzaak met een test erbij, en levert een rapport met wat gefixt is en wat jouw beslissing nodig heeft.",
+          "wanneer": "Voor een release, na een refactor, of als je code gebruikersinput, bestanden of betalingen verwerkt.",
+          "voorbeeld": "/anthropic-skills:stress-test-and-fix src/api/orders.py"
+        },
+        {
+          "command": "/anthropic-skills:design-first",
+          "description": "Alles wat visueel is: UI, website, logo, poster, kleurenpalet, redesign of feedback op een ontwerp.",
+          "uitleg": "Dezelfde skill als /design-first, uit de Anthropic-plugin. Claude kiest eerst het juiste gereedschap (bewerkbaar Design-artifact, echte code, of een beeldmodel) en past daarna vaste ontwerpregels toe: twee lettertypes, één hoofdkleur plus accent, vast spacing-raster, consistente componenten, geen standaard AI-look. Eindigt met een kwaliteitscheck.",
+          "wanneer": "Bij elke visuele vraag, ook 'maak het mooier' of 'geef me drie opties', of als je een screenshot deelt voor feedback.",
+          "voorbeeld": "/anthropic-skills:design-first ontwerp een dashboard voor mijn webshop-statistieken"
+        },
+        {
+          "command": "/anthropic-skills:chat-bridge",
+          "description": "Laat twee of meer Claude-chats samenwerken via een gedeelde brievenbus.",
+          "uitleg": "Dezelfde skill als /chat-bridge, uit de Anthropic-plugin. Maakt een gedeelde brievenbus (Claude Doc, artifact of bestand) met deelnemers, gedeelde context, berichten en open verzoeken. Jij zegt in elke chat 'check de bridge' en die chat leest, handelt af en schrijft terug.",
+          "wanneer": "Als twee chats elkaars werk moeten gebruiken, of een nieuwe chat verder moet waar een oude stopte.",
+          "voorbeeld": "/anthropic-skills:chat-bridge verbind deze chat met mijn ontwerp-chat"
+        },
+        {
+          "command": "/anthropic-skills:docs",
+          "description": "Maakt een bewerkbaar Claude Doc (rapport, brief, handleiding, beleid) dat je kunt delen en exporteren.",
+          "uitleg": "Claude maakt een document in Claude Docs: eerst de kopjes, dan vult hij per sectie de inhoud in terwijl jij meekijkt. Je kunt het delen, erop reageren en exporteren naar Word, PDF, Markdown of Google Docs. Dit is de standaardkeuze voor elk document dat je wilt bewaren, delen of versturen.",
+          "wanneer": "Voor een rapport, voorstel, brief, cv, contract, handleiding, procedure of ander stuk tekst dat meer is dan een chatantwoord.",
+          "voorbeeld": "/anthropic-skills:docs schrijf een projectvoorstel voor de nieuwe webshop, met planning en begroting"
+        },
+        {
+          "command": "/anthropic-skills:docx",
+          "description": "Word-documenten (.docx) maken, lezen of bewerken, inclusief tracked changes.",
+          "uitleg": "Werkt rechtstreeks met Word-bestanden: nieuwe .docx maken, bestaande lezen of herschrijven, zoeken en vervangen, afbeeldingen invoegen, en wijzigingen bijhouden of opmerkingen verwerken. Gebruik dit als het echt een Word-bestand moet zijn; wil je gewoon een document, kies dan /anthropic-skills:docs.",
+          "wanneer": "Als iemand expliciet een .docx wil, je een bestaand Word-bestand moet aanpassen, of met tracked changes moet werken.",
+          "voorbeeld": "/anthropic-skills:docx zet alle datums in contract.docx om naar 2027 en houd de wijzigingen bij"
+        },
+        {
+          "command": "/anthropic-skills:pdf",
+          "description": "PDF's lezen, samenvoegen, splitsen, invullen, beveiligen of OCR'en.",
+          "uitleg": "Alles met PDF-bestanden: tekst en tabellen eruit halen, meerdere PDF's samenvoegen of een PDF splitsen, pagina's draaien, watermerk toevoegen, formulieren invullen, wachtwoord zetten of verwijderen, afbeeldingen eruit halen, en gescande PDF's doorzoekbaar maken met OCR.",
+          "wanneer": "Zodra er een .pdf in het spel is, als invoer of als gewenste uitvoer.",
+          "voorbeeld": "/anthropic-skills:pdf voeg offerte.pdf en voorwaarden.pdf samen tot één bestand"
+        },
+        {
+          "command": "/anthropic-skills:pptx",
+          "description": "PowerPoint-presentaties (.pptx) maken, lezen of bewerken.",
+          "uitleg": "Maakt of bewerkt PowerPoint-bestanden: slides vanaf nul, tekst uit een bestaande presentatie halen, slides aanpassen, bestanden samenvoegen of splitsen, werken met sjablonen, sprekersnotities en opmerkingen. Vraag je om 'een presentatie' zonder bestandsformaat, dan gebruikt Claude liever het Slides-artifact.",
+          "wanneer": "Als er een .pptx of .potx bij betrokken is, of je expliciet een PowerPoint-bestand wilt.",
+          "voorbeeld": "/anthropic-skills:pptx maak een pitchdeck van 8 slides over ons nieuwe product"
+        },
+        {
+          "command": "/anthropic-skills:xlsx",
+          "description": "Spreadsheets (.xlsx, .csv) maken, opschonen, formules en grafieken toevoegen.",
+          "uitleg": "Werkt met Excel- en CSV-bestanden: een bestaand bestand lezen of aanpassen (kolommen toevoegen, formules, opmaak, grafieken, rommelige data opschonen), een nieuw spreadsheet maken, of tussen formaten omzetten. Het resultaat is altijd een spreadsheetbestand.",
+          "wanneer": "Als een spreadsheet de invoer of uitvoer is, bijvoorbeeld 'de xlsx in mijn downloads' of 'zet dit in een Excel'.",
+          "voorbeeld": "/anthropic-skills:xlsx voeg in omzet.xlsx een kolom met btw toe en maak een grafiek per maand"
+        },
+        {
+          "command": "/anthropic-skills:skill-creator",
+          "description": "Nieuwe skills maken, bestaande skills verbeteren en testen.",
+          "uitleg": "Helpt je een skill te schrijven (een SKILL.md met naam, beschrijving en instructies), een bestaande skill te verbeteren, en te meten of de skill goed wordt opgepakt via evaluaties. Nieuwe skills die je zo in ~/.claude/skills zet, verschijnen vanzelf in Prompt.",
+          "wanneer": "Als je een terugkerende manier van werken wilt vastleggen zodat je die met één command kunt oproepen.",
+          "voorbeeld": "/anthropic-skills:skill-creator maak een skill die mijn commit-berichten in onze huisstijl schrijft"
+        },
+        {
+          "command": "/anthropic-skills:setup-claude",
+          "description": "Begeleide setup: plugins installeren, tools koppelen, een skill proberen.",
+          "uitleg": "Loopt stap voor stap met je door de inrichting van Claude: welke plugins passen bij jouw rol, welke tools (Slack, Jira, GitHub, enzovoort) je wilt koppelen, en laat je een eerste skill proberen.",
+          "wanneer": "Bij een nieuwe installatie, of als je het gevoel hebt dat je Claude nog niet goed hebt ingericht.",
+          "voorbeeld": "/anthropic-skills:setup-claude"
+        },
+        {
+          "command": "/anthropic-skills:schedule",
+          "description": "Een taak inplannen die automatisch draait (elke dag, over een uur, enz.).",
+          "uitleg": "Maakt of wijzigt een geplande taak die Claude automatisch uitvoert op een vast moment of interval. Je beschrijft wat er moet gebeuren en wanneer; Claude zet de planning op en je kunt die later aanpassen.",
+          "wanneer": "Als je zegt 'elke ochtend', 'elke dag om 9 uur', 'herinner me over een uur' of een bestaande planning wilt veranderen.",
+          "voorbeeld": "/anthropic-skills:schedule maak elke maandag om 9:00 een overzicht van mijn open taken"
+        },
+        {
+          "command": "/anthropic-skills:explain-usage",
+          "description": "Legt uit waar de tokens van deze sessie naartoe gingen.",
+          "uitleg": "Geeft in gewone taal en met één grafiek een overzicht van het tokenverbruik van de huidige sessie: welke stappen veel kostten en waarom.",
+          "wanneer": "Als een sessie onverwacht veel verbruikt of je wilt begrijpen wat duur was.",
+          "voorbeeld": "/anthropic-skills:explain-usage"
+        },
+        {
+          "command": "/anthropic-skills:consolidate-memory",
+          "description": "Ruimt het geheugen op: dubbele of verouderde feiten samenvoegen.",
+          "uitleg": "Loopt de geheugenbestanden van Claude na, voegt dubbele notities samen, corrigeert verouderde feiten en maakt de index weer kort en kloppend.",
+          "wanneer": "Zo nu en dan, of als Claude dingen over je lijkt te onthouden die niet meer kloppen.",
+          "voorbeeld": "/anthropic-skills:consolidate-memory"
+        },
+        {
+          "command": "/anthropic-skills:import-memory",
+          "description": "Importeert een geheugen-export van een andere AI-assistent.",
+          "uitleg": "Leest een export van wat een andere assistent over je wist en voegt dat toe aan het geheugen van Claude, in overleg en zonder bestaande kennis te overschrijven.",
+          "wanneer": "Als je overstapt van een andere assistent en je voorkeuren en context wilt meenemen.",
+          "voorbeeld": "/anthropic-skills:import-memory importeer ~/Downloads/memory-export.json"
+        },
+        {
+          "command": "/engineering:code-review",
+          "description": "Reviewt code op security, performance en correctheid.",
+          "uitleg": "Bekijkt een diff, PR of bestand zoals een ervaren collega dat zou doen: beveiligingsrisico's (injectie, onveilige input), performance (N+1 queries, onnodige loops), foutafhandeling en vergeten randgevallen. Geeft concrete bevindingen met uitleg.",
+          "wanneer": "Voordat je merget, of als je wilt weten of een stuk code veilig en netjes is.",
+          "voorbeeld": "/engineering:code-review review mijn huidige wijzigingen voordat ik merge"
+        },
+        {
+          "command": "/engineering:debug",
+          "description": "Gestructureerde debugsessie: reproduceren, isoleren, diagnose, fix.",
+          "uitleg": "Pakt een bug methodisch aan: eerst de fout reproduceren, dan het probleem isoleren, de oorzaak vaststellen en pas daarna fixen. Voorkomt gokken en symptoombestrijding.",
+          "wanneer": "Bij een foutmelding of stacktrace, 'werkt op staging maar niet in productie', of gedrag dat afwijkt zonder duidelijke oorzaak.",
+          "voorbeeld": "/engineering:debug ik krijg 'TypeError: cannot read properties of undefined' bij het inloggen"
+        },
+        {
+          "command": "/engineering:architecture",
+          "description": "Architecture decision record (ADR) maken of beoordelen.",
+          "uitleg": "Legt een technische keuze vast in een ADR: de context, de opties, de afwegingen en de gevolgen. Kan ook een bestaand ontwerpvoorstel beoordelen of een component ontwerpen vanuit eisen en beperkingen.",
+          "wanneer": "Als je kiest tussen technologieën (bijvoorbeeld Kafka of SQS) of een ontwerpbesluit wilt documenteren.",
+          "voorbeeld": "/engineering:architecture schrijf een ADR over PostgreSQL versus MongoDB voor onze orderdata"
+        },
+        {
+          "command": "/engineering:system-design",
+          "description": "Systemen, services en API's ontwerpen.",
+          "uitleg": "Helpt bij het ontwerp van een systeem of service: componenten, servicegrenzen, datamodel, API-ontwerp en hoe het schaalt. Levert een onderbouwd ontwerp met alternatieven.",
+          "wanneer": "Bij 'hoe moeten we dit opzetten', 'ontwerp een systeem voor' of 'wat is de juiste architectuur voor'.",
+          "voorbeeld": "/engineering:system-design ontwerp een notificatiesysteem dat e-mail, sms en push aankan"
+        },
+        {
+          "command": "/engineering:testing-strategy",
+          "description": "Teststrategie en testplan opstellen.",
+          "uitleg": "Bepaalt welke tests je nodig hebt (unit, integratie, end-to-end), waar de risico's zitten, hoe je dekking opbouwt en hoe de testarchitectuur eruitziet. Kan ook concrete tests schrijven.",
+          "wanneer": "Bij 'hoe moeten we dit testen', 'schrijf tests voor' of 'welke tests hebben we nodig'.",
+          "voorbeeld": "/engineering:testing-strategy welke tests hebben we nodig voor de betaalmodule"
+        },
+        {
+          "command": "/engineering:tech-debt",
+          "description": "Technische schuld opsporen en prioriteren.",
+          "uitleg": "Inventariseert technische schuld in je codebase, deelt die in op soort en impact, en geeft een geprioriteerde lijst van wat je het beste eerst kunt opruimen.",
+          "wanneer": "Bij 'wat moeten we refactoren', 'code health' of het plannen van onderhoud.",
+          "voorbeeld": "/engineering:tech-debt maak een audit van de technische schuld in dit project"
+        },
+        {
+          "command": "/engineering:documentation",
+          "description": "Technische documentatie schrijven: README, API-docs, runbooks.",
+          "uitleg": "Schrijft en onderhoudt technische teksten: een README, API-documentatie, architectuurbeschrijving, onboarding-gids of een runbook voor beheer.",
+          "wanneer": "Bij 'schrijf docs voor', 'documenteer dit', 'maak een README' of 'schrijf een runbook'.",
+          "voorbeeld": "/engineering:documentation schrijf een README met installatie en gebruik voor dit project"
+        },
+        {
+          "command": "/engineering:deploy-checklist",
+          "description": "Checklist voordat je een release uitrolt.",
+          "uitleg": "Loopt vóór een deploy alles na: CI-status, goedkeuringen, databasemigraties, feature flags, en legt vooraf vast wanneer je terugdraait.",
+          "wanneer": "Vlak voor je iets naar productie brengt, vooral met migraties of flags.",
+          "voorbeeld": "/engineering:deploy-checklist we willen vanmiddag versie 2.4 uitrollen"
+        },
+        {
+          "command": "/engineering:incident-response",
+          "description": "Incident afhandelen: triage, communicatie, postmortem.",
+          "uitleg": "Begeleidt een storing van begin tot eind: ernst bepalen, statusupdates opstellen tijdens het incident, en achteraf een blameless postmortem schrijven.",
+          "wanneer": "Bij 'productie ligt eruit', een alert die beoordeeld moet worden, of na afloop voor de postmortem.",
+          "voorbeeld": "/engineering:incident-response de API geeft sinds 10 minuten 500-fouten"
+        },
+        {
+          "command": "/engineering:standup",
+          "description": "Standup-update genereren uit recente activiteit.",
+          "uitleg": "Maakt van je commits, PR's en ticketbewegingen van gisteren een korte update in het formaat gisteren / vandaag / blokkades, of structureert een paar losse notities tot een deelbaar bericht.",
+          "wanneer": "Vlak voor de dagelijkse standup.",
+          "voorbeeld": "/engineering:standup"
+        },
+        {
+          "command": "/productivity:start",
+          "description": "Productiviteitssysteem opzetten en dashboard openen.",
+          "uitleg": "Richt het productiviteitssysteem in: maakt het werkgeheugen aan op basis van je bestaande takenlijst en opent het dashboard. Leert ook je afkortingen en codenamen kennen.",
+          "wanneer": "Bij de eerste keer gebruiken van de Productivity-plugin.",
+          "voorbeeld": "/productivity:start"
+        },
+        {
+          "command": "/productivity:update",
+          "description": "Taken synchroniseren en geheugen verversen.",
+          "uitleg": "Haalt nieuwe taken op uit je projecttracker naar TASKS.md, markeert verouderde of te late taken, vult ontbrekende kennis over personen en projecten aan, en kan chat en e-mail doorzoeken op verborgen to-do's.",
+          "wanneer": "Aan het begin van de dag of als je takenlijst niet meer klopt.",
+          "voorbeeld": "/productivity:update"
+        },
+        {
+          "command": "/productivity:task-management",
+          "description": "Taken beheren in een gedeeld TASKS.md.",
+          "uitleg": "Eenvoudig takenbeheer in één bestand: taken toevoegen, afvinken, prioriteren en je afspraken bijhouden.",
+          "wanneer": "Als je vraagt naar je taken of een taak wilt toevoegen of afronden.",
+          "voorbeeld": "/productivity:task-management voeg toe: offerte versturen naar klant X, deadline vrijdag"
+        },
+        {
+          "command": "/productivity:memory-management",
+          "description": "Werkgeheugen en kennisbank bijhouden (CLAUDE.md en memory/).",
+          "uitleg": "Tweelaags geheugen: CLAUDE.md als werkgeheugen en een memory-map als kennisbank, zodat Claude je afkortingen, bijnamen en interne taal begrijpt zoals een collega dat zou doen.",
+          "wanneer": "Als Claude je jargon of projectnamen niet begrijpt, of je context wilt vastleggen.",
+          "voorbeeld": "/productivity:memory-management onthoud dat 'MOK' ons project Microsoft Office Killer is"
+        },
+        {
+          "command": "/cowork-plugin-management:create-cowork-plugin",
+          "description": "Een nieuwe plugin vanaf nul maken.",
+          "uitleg": "Begeleidt je bij het bouwen van een eigen plugin: structuur, skills, instellingen en het opleveren van het .plugin-bestand.",
+          "wanneer": "Als je een eigen plugin wilt maken of ontwerpen.",
+          "voorbeeld": "/cowork-plugin-management:create-cowork-plugin maak een plugin voor onze offerteflow"
+        },
+        {
+          "command": "/cowork-plugin-management:cowork-plugin-customizer",
+          "description": "Een plugin aanpassen aan de tools van je organisatie.",
+          "uitleg": "Past een bestaande plugin aan op jouw organisatie: welke koppelingen, welke werkwijze, welke instellingen.",
+          "wanneer": "Als een plugin bijna past maar je hem op jullie tools wilt afstemmen.",
+          "voorbeeld": "/cowork-plugin-management:cowork-plugin-customizer stem de engineering-plugin af op GitLab in plaats van GitHub"
+        },
+        {
+          "command": "/dataviz",
+          "description": "Grafieken, dashboards en datavisualisaties die er consistent uitzien.",
+          "uitleg": "Leest Claude vóór het maken van een grafiek, dashboard of plot, in welk formaat dan ook. Geeft een methode voor vorm, kleur (met een gevalideerd palet), markeringen en interactie, zodat alle visualisaties als één geheel ogen en toegankelijk zijn.",
+          "wanneer": "Bij elke grafiek, plot, dashboard, heatmap, stat tile of sparkline.",
+          "voorbeeld": "/dataviz maak een dashboard van de omzet per maand en per product"
+        },
+        {
+          "command": "/update-config",
+          "description": "Claude Code-instellingen (settings.json), hooks en permissies aanpassen.",
+          "uitleg": "Past settings.json aan: permissies toevoegen ('sta npm toe'), omgevingsvariabelen zetten, en hooks instellen voor automatische acties ('elke keer als X, doe Y'). Zulke automatiseringen draaien in de harness, niet in het geheugen.",
+          "wanneer": "Bij 'vanaf nu altijd als...', 'sta X toe', 'zet DEBUG=true' of problemen met hooks.",
+          "voorbeeld": "/update-config sta alle npm-commands toe zonder te vragen"
+        },
+        {
+          "command": "/keybindings-help",
+          "description": "Sneltoetsen van Claude Code aanpassen.",
+          "uitleg": "Helpt bij het aanpassen van toetsencombinaties in ~/.claude/keybindings.json: toetsen opnieuw toewijzen, chord-combinaties toevoegen, de verzendtoets veranderen.",
+          "wanneer": "Als je een sneltoets wilt veranderen of toevoegen.",
+          "voorbeeld": "/keybindings-help maak ctrl+s de toets om te verzenden"
+        },
+        {
+          "command": "/fewer-permission-prompts",
+          "description": "Minder toestemmingsvragen door een allowlist toe te voegen.",
+          "uitleg": "Scant je eerdere sessies op veelgebruikte, veilige (alleen-lezen) commands en zet die in een allowlist in de projectinstellingen, zodat Claude er niet steeds toestemming voor vraagt.",
+          "wanneer": "Als je het zat bent om steeds dezelfde onschuldige commands goed te keuren.",
+          "voorbeeld": "/fewer-permission-prompts"
+        },
+        {
+          "command": "/run",
+          "description": "Start de app van dit project en laat zien dat een wijziging werkt.",
+          "uitleg": "Start de applicatie van het huidige project (server, CLI, Electron, browser) en controleert in de echte app of een wijziging werkt, bijvoorbeeld met een screenshot. Gebruikt een projectskill als die er is, anders ingebouwde patronen.",
+          "wanneer": "Bij 'start de app', 'maak een screenshot' of 'laat zien dat het werkt'.",
+          "voorbeeld": "/run start de app en laat de nieuwe inlogpagina zien"
+        },
+        {
+          "command": "/plugin-authoring",
+          "description": "Een mod maken voor Claude's eigen interface of gedrag.",
+          "uitleg": "Maakt een aanpassing aan Claude zelf: een extra paneel, een balk boven de prompt, een statusregel, een melding, een slash-command of een hook op toolaanroepen.",
+          "wanneer": "Als je Claude Code zelf wilt uitbreiden of een mod wilt debuggen.",
+          "voorbeeld": "/plugin-authoring maak een statusregel die de huidige git-branch en het model toont"
+        },
+        {
+          "command": "/claude-api",
+          "description": "Naslag voor de Claude API en Anthropic SDK.",
+          "uitleg": "Actuele referentie voor het bouwen met de Claude API: model-id's, prijzen, parameters, streaming, tool use, MCP, agents, caching en migratie tussen modellen. Claude leest dit vóór hij code met de API schrijft.",
+          "wanneer": "Zodra je iets bouwt met Claude of de Anthropic SDK, of vraagt over modellen en prijzen.",
+          "voorbeeld": "/claude-api welk model moet ik kiezen voor een goedkope classificatietaak"
+        },
+        {
+          "command": "/workflow-authoring",
+          "description": "Naslag voor het schrijven van een Workflow-script met meerdere agents.",
+          "uitleg": "Referentie voor Workflow-scripts: hoe je meerdere agents deterministisch aanstuurt, parallel laat werken, resultaten doorgeeft en hervat na een fout.",
+          "wanneer": "Als je al hebt gekozen voor een workflow met meerdere agents en het script moet schrijven.",
+          "voorbeeld": "/workflow-authoring"
+        }
+      ]
+    },
+    {
+      "category": "Ingebouwd",
+      "commands": [
+        {
+          "command": "/help",
+          "description": "Overzicht van alle beschikbare commands.",
+          "uitleg": "Toont alle slash-commands die in deze sessie beschikbaar zijn, met een korte beschrijving.",
+          "wanneer": "Als je niet meer weet welk command je nodig hebt.",
+          "voorbeeld": "/help"
+        },
+        {
+          "command": "/init",
+          "description": "Maakt een CLAUDE.md met documentatie over de codebase.",
+          "uitleg": "Onderzoekt het project en schrijft een CLAUDE.md: hoe de code in elkaar zit, hoe je bouwt en test, en welke afspraken gelden. Claude leest dat bestand elke sessie, dus daarna begrijpt hij je project sneller.",
+          "wanneer": "Bij de eerste keer dat je Claude in een project gebruikt.",
+          "voorbeeld": "/init"
+        },
+        {
+          "command": "/clear",
+          "description": "Wist de gespreksgeschiedenis van deze sessie.",
+          "uitleg": "Begint met een schone lei: de context van het gesprek wordt leeggemaakt. Bestanden blijven staan.",
+          "wanneer": "Als je aan iets heel anders begint en de oude context alleen maar in de weg zit.",
+          "voorbeeld": "/clear"
+        },
+        {
+          "command": "/compact",
+          "description": "Vat het gesprek samen om context te besparen.",
+          "uitleg": "Vervangt de gespreksgeschiedenis door een samenvatting zodat er weer ruimte is, zonder dat Claude vergeet waar jullie mee bezig waren. Je kunt erbij zetten waar de samenvatting op moet letten.",
+          "wanneer": "Bij een lange sessie die traag of duur wordt.",
+          "voorbeeld": "/compact behoud de lijst met nog openstaande bugs"
+        },
+        {
+          "command": "/config",
+          "description": "Instellingen van Claude Code openen (thema, model, enz.).",
+          "uitleg": "Opent het instellingenpaneel: thema, standaardmodel, meldingen en andere voorkeuren.",
+          "wanneer": "Als je een voorkeur wilt veranderen.",
+          "voorbeeld": "/config"
+        },
+        {
+          "command": "/model",
+          "description": "Kies welk Claude-model je gebruikt.",
+          "uitleg": "Wisselt het model voor deze sessie, bijvoorbeeld een sneller of juist een krachtiger model.",
+          "wanneer": "Als een taak meer denkkracht nodig heeft, of juist snel en goedkoop mag.",
+          "voorbeeld": "/model"
+        },
+        {
+          "command": "/fast",
+          "description": "Snelle modus aan of uit.",
+          "uitleg": "Schakelt de snelle modus: hetzelfde model, maar met snellere uitvoer.",
+          "wanneer": "Bij eenvoudige taken waar je vooral snel antwoord wilt.",
+          "voorbeeld": "/fast"
+        },
+        {
+          "command": "/cost",
+          "description": "Laat het tokengebruik en de kosten van deze sessie zien.",
+          "uitleg": "Toont hoeveel tokens deze sessie heeft gebruikt en wat dat kost.",
+          "wanneer": "Als je wilt weten wat een sessie tot nu toe heeft gekost.",
+          "voorbeeld": "/cost"
+        },
+        {
+          "command": "/status",
+          "description": "Status van de sessie: model, map, account.",
+          "uitleg": "Geeft een overzicht van de huidige sessie: welk model, welke werkmap, welk account en welke versie.",
+          "wanneer": "Als je snel wilt controleren waar Claude mee werkt.",
+          "voorbeeld": "/status"
+        },
+        {
+          "command": "/doctor",
+          "description": "Controleert de installatie van Claude Code op problemen.",
+          "uitleg": "Controleert of Claude Code goed is geïnstalleerd en geconfigureerd, en meldt wat er mis is.",
+          "wanneer": "Als iets niet werkt zoals verwacht.",
+          "voorbeeld": "/doctor"
+        },
+        {
+          "command": "/memory",
+          "description": "Geheugenbestanden (CLAUDE.md) bekijken en bewerken.",
+          "uitleg": "Opent de CLAUDE.md-bestanden (project en persoonlijk) zodat je kunt zien en aanpassen wat Claude elke sessie meekrijgt.",
+          "wanneer": "Als je vaste instructies of projectafspraken wilt toevoegen of corrigeren.",
+          "voorbeeld": "/memory"
+        },
+        {
+          "command": "/permissions",
+          "description": "Welke tools en commands Claude zonder vragen mag gebruiken.",
+          "uitleg": "Beheert de toestemmingen: welke commands altijd mogen, welke altijd geweigerd worden, en welke om bevestiging vragen.",
+          "wanneer": "Als Claude te vaak om toestemming vraagt, of juist iets mag dat je wilt blokkeren.",
+          "voorbeeld": "/permissions"
+        },
+        {
+          "command": "/hooks",
+          "description": "Hooks bekijken die bij bepaalde gebeurtenissen draaien.",
+          "uitleg": "Toont en beheert hooks: commands die automatisch draaien bij een gebeurtenis, zoals het starten van een sessie of een toolaanroep.",
+          "wanneer": "Als je automatische acties wilt controleren of instellen.",
+          "voorbeeld": "/hooks"
+        },
+        {
+          "command": "/mcp",
+          "description": "MCP-servers en connectors beheren.",
+          "uitleg": "Toont de gekoppelde MCP-servers (externe tools zoals GitHub, Slack, Jira), hun status, en laat je inloggen bij servers die dat nodig hebben.",
+          "wanneer": "Als een koppeling niet werkt of je een tool wilt toevoegen.",
+          "voorbeeld": "/mcp"
+        },
+        {
+          "command": "/plugins",
+          "description": "Plugins installeren of beheren.",
+          "uitleg": "Overzicht van geïnstalleerde en beschikbare plugins; installeren, inschakelen of verwijderen.",
+          "wanneer": "Als je nieuwe skills of koppelingen wilt toevoegen.",
+          "voorbeeld": "/plugins"
+        },
+        {
+          "command": "/agents",
+          "description": "Subagents bekijken en aanmaken.",
+          "uitleg": "Beheert subagents: gespecialiseerde helpers met eigen instructies en tools die Claude voor deeltaken kan inzetten.",
+          "wanneer": "Als je een vaste helper wilt voor een terugkerend soort taak.",
+          "voorbeeld": "/agents"
+        },
+        {
+          "command": "/resume",
+          "description": "Een eerdere sessie hervatten.",
+          "uitleg": "Kies een eerdere sessie en ga verder waar je gebleven was, met de volledige context.",
+          "wanneer": "Als je terug wilt naar werk van gisteren of eerder.",
+          "voorbeeld": "/resume"
+        },
+        {
+          "command": "/review",
+          "description": "Vraagt om een code review van de huidige wijzigingen.",
+          "uitleg": "Laat Claude je huidige wijzigingen beoordelen op fouten, stijl en verbeterpunten.",
+          "wanneer": "Voor je commit of een PR opent.",
+          "voorbeeld": "/review"
+        },
+        {
+          "command": "/code-review",
+          "description": "Reviewt de huidige diff of een PR op bugs; met --fix past hij ze toe.",
+          "uitleg": "Zoekt gericht naar echte fouten in je diff, een branch of een PR-nummer. Je kiest een niveau (low tot max: van enkele zekere bevindingen tot veel, ook onzekere). Met --comment plaatst hij de bevindingen als opmerkingen op de PR, met --fix past hij ze direct toe.",
+          "wanneer": "Voor je merget, of als je een tweede paar ogen wilt op een PR.",
+          "voorbeeld": "/code-review high --fix"
+        },
+        {
+          "command": "/simplify",
+          "description": "Maakt gewijzigde code eenvoudiger en efficiënter.",
+          "uitleg": "Bekijkt je gewijzigde code op hergebruik, eenvoud en efficiëntie en past de verbeteringen meteen toe. Zoekt niet naar bugs; daarvoor is /code-review.",
+          "wanneer": "Nadat iets werkt en je het netjes wilt maken.",
+          "voorbeeld": "/simplify"
+        },
+        {
+          "command": "/security-review",
+          "description": "Security review van de wijzigingen op de huidige branch.",
+          "uitleg": "Controleert alle wijzigingen op je branch op beveiligingsproblemen: onveilige input, lekken van gegevens, verkeerde rechten, kwetsbare afhankelijkheden.",
+          "wanneer": "Voor een release of bij code die met gebruikersdata of toegang werkt.",
+          "voorbeeld": "/security-review"
+        },
+        {
+          "command": "/loop",
+          "description": "Voert een prompt of command herhaaldelijk uit (bv. /loop 5m /status).",
+          "uitleg": "Herhaalt een opdracht of command met een vast interval, of laat Claude zelf het tempo bepalen als je geen interval opgeeft. Handig om iets in de gaten te houden.",
+          "wanneer": "Bij 'controleer elke 5 minuten de deploy' of ander terugkerend werk binnen een sessie.",
+          "voorbeeld": "/loop 10m controleer of de CI-build groen is"
+        },
+        {
+          "command": "/schedule",
+          "description": "Geplande cloud-agents (routines) maken of beheren.",
+          "uitleg": "Maakt, wijzigt of start een routine: een Claude-agent die in de cloud op een vast schema draait, ook als je computer uit staat. Ook voor eenmalige geplande runs.",
+          "wanneer": "Bij 'elke ochtend', 'elke vrijdag om 17:00' of 'doe dit morgen om 9 uur'.",
+          "voorbeeld": "/schedule elke werkdag om 8:00 een samenvatting van nieuwe GitHub-issues"
+        },
+        {
+          "command": "/artifacts",
+          "description": "Lijst van je artifacts (gepubliceerde pagina's).",
+          "uitleg": "Toont de pagina's, documenten en apps die Claude als artifact heeft gepubliceerd; openen of de link kopiëren.",
+          "wanneer": "Als je een eerder gemaakt artifact terug wilt vinden.",
+          "voorbeeld": "/artifacts"
+        },
+        {
+          "command": "/terminal-setup",
+          "description": "Stelt Shift+Enter in voor een nieuwe regel in de terminal.",
+          "uitleg": "Configureert je terminal zodat Shift+Enter een nieuwe regel geeft in plaats van te verzenden.",
+          "wanneer": "Als je in de terminal meerregelige prompts wilt typen.",
+          "voorbeeld": "/terminal-setup"
+        },
+        {
+          "command": "/vim",
+          "description": "Vim-toetsen aan of uit in het invoerveld.",
+          "uitleg": "Schakelt Vim-bediening in het invoerveld in of uit.",
+          "wanneer": "Als je gewend bent aan Vim.",
+          "voorbeeld": "/vim"
+        },
+        {
+          "command": "/login",
+          "description": "Inloggen met je Anthropic-account.",
+          "uitleg": "Logt in of wisselt van account.",
+          "wanneer": "Bij een nieuwe installatie of als je sessie verlopen is.",
+          "voorbeeld": "/login"
+        },
+        {
+          "command": "/logout",
+          "description": "Uitloggen.",
+          "uitleg": "Logt uit bij je Anthropic-account.",
+          "wanneer": "Als je van account wilt wisselen of de computer deelt.",
+          "voorbeeld": "/logout"
+        }
+      ]
+    }
+  ]
+}

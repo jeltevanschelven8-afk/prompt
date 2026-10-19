@@ -1,0 +1,90 @@
+# Prompt — tests on Windows, macOS and Linux for every change, and publishes the marketplace website
+# (GitHub Pages) from main.
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  skills:
+    name: Validate skills
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm test
+      - run: npm run check
+
+  app:
+    name: App on ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Tk and a virtual screen (Linux)
+        if: runner.os == 'Linux'
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq python3-tk xvfb
+      - name: Unit, stress and window tests (Linux, virtual screen)
+        if: runner.os == 'Linux'
+        run: xvfb-run -a python -m unittest discover -s test -p "test_*.py" -v
+      - name: Unit, stress and window tests
+        if: runner.os != 'Linux'
+        run: python -m unittest discover -s test -p "test_*.py" -v
+      - name: Installer (macOS / Linux, into a temporary home)
+        if: runner.os != 'Windows'
+        shell: bash
+        run: |
+          export HOME="$RUNNER_TEMP/home" && mkdir -p "$HOME"
+          bash app/install.sh
+          if [ "$RUNNER_OS" = "macOS" ]; then
+            test -x "$HOME/Applications/Prompt.app/Contents/MacOS/Prompt"
+            test -f "$HOME/Library/Application Support/Prompt/catalog/data/index.json"
+          else
+            test -x "$HOME/.local/bin/prompt-app"
+            test -f "$HOME/.local/share/applications/prompt.desktop"
+            test -f "$HOME/.local/share/prompt/catalog/data/index.json"
+          fi
+          bash app/uninstall.sh
+
+  pages:
+    name: Website (GitHub Pages)
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+    needs: [skills, app]
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    concurrency:
+      group: pages
+      cancel-in-progress: true
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # full history, so "last updated" dates are right
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm run build
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist
+      - id: deployment
+        uses: actions/deploy-pages@v4

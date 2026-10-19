@@ -1,0 +1,14 @@
+name: Skill-wens / Skill request
+description: Beschrijf een skill die je graag zou zien. Misschien maakt iemand hem.
+labels: [skill-request]
+body:
+  - type: textarea
+    id: what
+    attributes:
+      label: Wat moet Claude kunnen? / What should Claude be able to do?
+    validations:
+      required: true
+  - type: textarea
+    id: when
+    attributes:
+      label: Wanneer zou je hem gebruiken? / When would you use it?

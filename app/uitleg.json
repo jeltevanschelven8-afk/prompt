@@ -1,0 +1,24 @@
+{
+  "_uitleg": "Nederlandse uitleg voor skills en commands die uit bestanden worden gelezen (Mijn skills, Mijn commands, Project). Sleutel is het command, bijvoorbeeld /mijn-skill. Werkt ook voor plugin-varianten zoals /anthropic-skills:mijn-skill. Velden: kort (korte regel in de lijst), uitleg, wanneer, voorbeeld. Wijzigingen verschijnen binnen 2 seconden in Prompt.",
+
+  "/stress-test-and-fix": {
+    "kort": "Probeert je eigen code te breken met vijandige input, fixt de bugs die dat oplevert en schrijft er tests bij.",
+    "uitleg": "Claude leest eerst je code en bepaalt wat die belooft (welke input, welke output, wat nooit mag gebeuren). Daarna gooit hij er alles tegenaan wat mis kan gaan: lege waarden, verkeerde types, enorme bestanden, rare Unicode, NaN en overflow, dingen in de verkeerde volgorde, meerdere threads tegelijk, ontbrekende bestanden, trage netwerkcalls en injectie-achtige input. Elke fout die hij vindt fixt hij bij de oorzaak (niet met een pleister), met een regressietest erbij. Hij herhaalt dat tot een ronde niets nieuws oplevert en eindigt met een kort rapport: wat gefixt is, wat jouw beslissing nodig heeft, en hoe je de tests draait.",
+    "wanneer": "Als je wilt weten of je code tegen een stootje kan: voor een release, na een grote refactor, of als je iets hebt geschreven dat gebruikersinput, bestanden of geld verwerkt. Alleen voor code die van jou is; het is testen, geen aanvallen van andermans systemen.",
+    "voorbeeld": "/stress-test-and-fix src/parser.ts"
+  },
+
+  "/design-first": {
+    "kort": "Voor alles wat visueel is: kiest eerst het juiste gereedschap en past daarna echte ontwerpregels toe.",
+    "uitleg": "Claude beslist eerst waarmee hij het ontwerp maakt: een bewerkbaar Design-artifact (voor schermen, websites, dashboards die je zelf wilt aanpassen), echte code (als het moet werken en klikbaar zijn), een beeldmodel zoals Adobe of Higgsfield (voor logo's, posters, foto-achtige beelden) of een inline tekening (voor een snelle uitleg). Daarna legt hij vier dingen vast: doel, doelgroep en toon, hiërarchie en randvoorwaarden. Hij past vaste regels toe: maximaal twee lettertypes, een vaste typografische schaal, één hoofdkleur plus accent, een vast spacing-raster, consistente knoppen en states, en bewust geen standaard AI-look (geen paars-blauwe gradients, geen drie identieke kaartjes met emoji). Voor hij oplevert loopt hij een checklist na: is in twee seconden duidelijk waar het over gaat, klopt het contrast, werkt het op telefoonbreedte.",
+    "wanneer": "Bij elke visuele vraag: een UI, app-scherm, website, landingspagina, mockup, logo, poster, flyer, banner, icoon, kleurenpalet of typografie. Ook als je zegt 'maak het mooier', 'dit ziet er lelijk uit' of 'geef me drie opties', of als je een screenshot deelt en feedback wilt.",
+    "voorbeeld": "/design-first maak een landingspagina voor mijn app, modern en rustig, geef 3 richtingen"
+  },
+
+  "/chat-bridge": {
+    "kort": "Laat twee of meer Claude-chats samenwerken via een gedeelde brievenbus waarin ze berichten voor elkaar achterlaten.",
+    "uitleg": "Chats kunnen niet live met elkaar praten. Deze skill maakt daarom een gedeelde 'brievenbus' aan: een Claude Doc, een artifact met database, of een BRIDGE.md-bestand. Daarin staan de deelnemers, de gedeelde context (feiten en besluiten), de berichten met tijd en afzender, en een checklist met open verzoeken. Jij bent de koerier: je zegt in een chat 'check de bridge', en die chat leest wat nieuw is, voert de verzoeken uit die aan hem gericht zijn, schrijft terug en vinkt af. Claude kan ook rechtstreeks in de geschiedenis van de andere chat kijken als dat nodig is.",
+    "wanneer": "Als je in de ene chat code schrijft en in de andere ontwerpt of onderzoekt, en je wilt dat ze elkaars resultaten gebruiken. Of als een nieuwe chat verder moet waar een oude ophield.",
+    "voorbeeld": "/chat-bridge zet een bridge op voor project X; deze chat doet de backend, de andere chat het ontwerp"
+  }
+}

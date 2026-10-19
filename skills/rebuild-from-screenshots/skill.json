@@ -1,0 +1,15 @@
+{
+  "author": "prompt",
+  "category": "code",
+  "tags": [
+    "prototyping",
+    "frontend",
+    "clone",
+    "visual-diff",
+    "namaken",
+    "nabouwen"
+  ],
+  "version": "1.0.0",
+  "license": "MIT",
+  "summary_nl": "Bouwt een app of website na op basis van screenshots en vergelijkt het resultaat tot het klopt."
+}

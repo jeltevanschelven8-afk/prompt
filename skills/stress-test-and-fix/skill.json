@@ -1,0 +1,15 @@
+{
+  "author": "prompt",
+  "category": "testing",
+  "tags": [
+    "fuzzing",
+    "edge-cases",
+    "debugging",
+    "robustness",
+    "testen",
+    "bugs vinden"
+  ],
+  "version": "1.0.0",
+  "license": "MIT",
+  "summary_nl": "Probeert je eigen code te breken met vijandige input, fixt de bugs en schrijft er tests bij."
+}

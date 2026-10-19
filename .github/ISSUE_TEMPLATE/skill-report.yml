@@ -1,0 +1,29 @@
+name: Probleem met een skill / Skill problem
+description: Meld een skill die niet werkt, misleidend is of onveilig lijkt.
+labels: [skill-report]
+body:
+  - type: input
+    id: skill
+    attributes:
+      label: Skill
+      description: De naam, bv. design-first
+    validations:
+      required: true
+  - type: dropdown
+    id: kind
+    attributes:
+      label: Soort probleem / Kind of problem
+      options:
+        - Werkt niet zoals beschreven / Does not work as described
+        - Onveilig of kwaadaardig / Unsafe or malicious
+        - Auteursrecht of licentie / Copyright or license
+        - Anders / Other
+    validations:
+      required: true
+  - type: textarea
+    id: details
+    attributes:
+      label: Wat gebeurde er? / What happened?
+      description: Welke regels in SKILL.md, wat je vroeg en wat Claude deed.
+    validations:
+      required: true

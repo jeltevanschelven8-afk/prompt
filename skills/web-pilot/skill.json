@@ -1,0 +1,15 @@
+{
+  "author": "prompt",
+  "category": "automation",
+  "tags": [
+    "browser",
+    "playwright",
+    "forms",
+    "testing",
+    "browser besturen",
+    "formulier invullen"
+  ],
+  "version": "1.0.0",
+  "license": "MIT",
+  "summary_nl": "Laat Claude een echte browser bedienen: pagina's openen, klikken, formulieren invullen en screenshots maken."
+}

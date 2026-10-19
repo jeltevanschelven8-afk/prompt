@@ -1,0 +1,14 @@
+{
+  "author": "prompt",
+  "category": "workflow",
+  "tags": [
+    "multi-chat",
+    "handoff",
+    "collaboration",
+    "chats koppelen",
+    "samenwerken"
+  ],
+  "version": "1.0.0",
+  "license": "MIT",
+  "summary_nl": "Laat twee of meer Claude-chats samenwerken via een gedeelde brievenbus waarin ze berichten voor elkaar achterlaten."
+}

@@ -1,0 +1,19 @@
+{
+  "name": "prompt",
+  "version": "0.2.0",
+  "private": true,
+  "description": "Prompt: Windows-app en open-source marktplaats voor Claude Code-skills.",
+  "license": "MIT",
+  "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "check": "node scripts/build.mjs --check",
+    "serve": "node scripts/serve.mjs",
+    "dev": "node scripts/build.mjs && node scripts/serve.mjs",
+    "test": "node --test \"test/*.test.mjs\"",
+    "test:app": "python -m unittest discover -s test -p \"test_*.py\""
+  }
+}

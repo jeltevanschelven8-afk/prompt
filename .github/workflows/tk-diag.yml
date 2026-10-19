@@ -3,6 +3,10 @@ name: Tk diagnose
 
 on:
   workflow_dispatch:
+    inputs:
+      tag:
+        required: false
+        default: main
 
 jobs:
   diag:

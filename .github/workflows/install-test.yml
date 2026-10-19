@@ -1,0 +1,108 @@
+# Prompt — follows INSTALL.md on clean Windows, macOS and Linux machines with a published release:
+# install Python the way the guide says, download the release, install, start Prompt, take a screenshot.
+# Run by hand: Actions › Install test › Run workflow (choose a version tag).
+name: Install test
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Release tag to test (e.g. v2.0.1)
+        required: true
+
+permissions:
+  contents: read
+
+jobs:
+  linux:
+    name: Linux (Ubuntu) as in INSTALL.md
+    runs-on: ubuntu-latest
+    steps:
+      - name: "Step 1: Python with Tk (sudo apt install python3 python3-tk)"
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq python3 python3-tk xvfb imagemagick x11-utils
+      - name: "Step 2: download, unpack, ./install.sh"
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          cd ~
+          gh release download "${{ inputs.tag }}" -R "$GITHUB_REPOSITORY" -p '*-linux.tar.gz'
+          tar xzf Prompt-*-linux.tar.gz
+          cd prompt
+          ./install.sh
+      - name: "Step 3: start Prompt (prompt-app) and take a screenshot"
+        run: |
+          export DISPLAY=:99
+          Xvfb :99 -screen 0 1280x900x24 & sleep 2
+          ~/.local/bin/prompt-app --market > ~/prompt.log 2>&1 &
+          sleep 10
+          pgrep -f "prompt.pyw" > /dev/null || { cat ~/prompt.log; exit 1; }
+          xwininfo -root -tree | grep -q '"Prompt"' || { echo "no Prompt window"; exit 1; }
+          import -window root linux.png
+          cat ~/prompt.log
+      - uses: actions/upload-artifact@v4
+        with:
+          name: screenshot-linux
+          path: linux.png
+
+  macos:
+    name: macOS as in INSTALL.md
+    runs-on: macos-latest
+    steps:
+      - name: "Step 1: Python from python.org"
+        run: |
+          curl -sSLo python.pkg https://www.python.org/ftp/python/3.12.10/python-3.12.10-macos11.pkg
+          sudo installer -pkg python.pkg -target /
+          /Library/Frameworks/Python.framework/Versions/3.12/bin/python3 -c 'import tkinter; print("Tk", tkinter.TkVersion)'
+      - name: "Step 2-3: download, unpack, run 'Install Prompt.command'"
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          cd ~/Downloads
+          gh release download "${{ inputs.tag }}" -R "$GITHUB_REPOSITORY" -p '*-macos.zip'
+          ditto -x -k Prompt-*-macos.zip .
+          test -x "Prompt/Install Prompt.command"
+          "./Prompt/Install Prompt.command" < /dev/null
+      - name: "Step 4: open Prompt from ~/Applications and take a screenshot"
+        run: |
+          test -d ~/Applications/Prompt.app
+          open ~/Applications/Prompt.app --args --market
+          sleep 15
+          pgrep -f "prompt.pyw" > /dev/null || { echo "Prompt is not running"; exit 1; }
+          screencapture -x macos.png
+      - uses: actions/upload-artifact@v4
+        with:
+          name: screenshot-macos
+          path: macos.png
+
+  windows:
+    name: Windows as in INSTALL.md
+    runs-on: windows-latest
+    steps:
+      - name: "Step 1: Python (preinstalled on the runner, with tcl/tk)"
+        run: python -c "import tkinter, sys; print(sys.version, 'Tk', tkinter.TkVersion)"
+      - name: "Step 2-5: download, extract, run 'Install Prompt.cmd'"
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: pwsh
+        run: |
+          cd $env:USERPROFILE
+          gh release download "${{ inputs.tag }}" -R "$env:GITHUB_REPOSITORY" -p '*-windows.zip'
+          Expand-Archive (Get-Item Prompt-*-windows.zip) .
+          cmd /c "`"$env:USERPROFILE\Prompt\Install Prompt.cmd`" < nul"
+          if (-not (Test-Path "$env:LOCALAPPDATA\Programs\Prompt\bin\Prompt.exe")) { throw "Prompt.exe missing" }
+      - name: "Step 6: start Prompt from the Start menu and take a screenshot"
+        shell: pwsh
+        run: |
+          Start-Process "$env:APPDATA\Microsoft\Windows\Start Menu\Programs\Prompt.lnk"
+          Start-Sleep -Seconds 12
+          if (-not (Get-Process Prompt -ErrorAction SilentlyContinue)) { Get-Content "$env:LOCALAPPDATA\Programs\Prompt\error.log"; throw "Prompt is not running" }
+          Add-Type -AssemblyName System.Windows.Forms, System.Drawing
+          $b = [System.Windows.Forms.Screen]::PrimaryScreen.Bounds
+          $bmp = New-Object System.Drawing.Bitmap $b.Width, $b.Height
+          [System.Drawing.Graphics]::FromImage($bmp).CopyFromScreen($b.Location, [System.Drawing.Point]::Empty, $b.Size)
+          $bmp.Save("$env:GITHUB_WORKSPACE\windows.png")
+          Get-Content "$env:LOCALAPPDATA\Programs\Prompt\error.log" -ErrorAction SilentlyContinue
+      - uses: actions/upload-artifact@v4
+        with:
+          name: screenshot-windows
+          path: windows.png

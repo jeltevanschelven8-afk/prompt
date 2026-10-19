@@ -1,0 +1,61 @@
+# Temporary: find which Tk feature crashes Tk 9 on macOS.
+name: Tk diagnose
+
+on:
+  workflow_dispatch:
+
+jobs:
+  diag:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: |
+          curl -sSLo python.pkg https://www.python.org/ftp/python/3.14.8/python-3.14.8-macos11.pkg
+          sudo installer -pkg python.pkg -target /
+      - name: Each feature in its own process
+        run: |
+          PY=/Library/Frameworks/Python.framework/Versions/3.14/bin/python3
+          cat > case.py <<'EOF'
+          import sys, time, tkinter as tk, tkinter.font as tkfont
+          from tkinter import ttk
+          case = sys.argv[1]
+          root = tk.Tk(); root.geometry("500x500")
+          if case == "icon":
+              img = tk.PhotoImage(file="app/icon.png"); root.iconphoto(True, img)
+          elif case == "polygon":
+              c = tk.Canvas(root, width=200, height=60, highlightthickness=0); c.pack()
+              c.create_polygon([10,10,190,10,190,50,10,50], smooth=True, fill="red", outline="blue")
+          elif case == "sysfont":
+              tk.Label(root, text="hallo", font=(".AppleSystemUIFont", 13, "bold")).pack()
+          elif case == "place":
+              f = tk.Frame(root, height=1); f.pack(fill="x")
+              ws = [tk.Label(f, text=f"chip {i}") for i in range(10)]
+              def layout(_=None):
+                  x = 0
+                  for w in ws: w.place(x=x, y=0); x += w.winfo_reqwidth()
+                  f.configure(height=30)
+              f.bind("<Configure>", layout); f.after_idle(layout)
+          elif case == "scrollbar":
+              s = ttk.Style(root); s.theme_use("clam")
+              s.configure("P.Vertical.TScrollbar", troughcolor="#fff", background="#eee", gripcount=0)
+              ttk.Scrollbar(root, style="P.Vertical.TScrollbar").pack(side="right", fill="y")
+          elif case == "topmost":
+              root.attributes("-topmost", False)
+          elif case == "families":
+              print(len(tkfont.families(root)))
+          elif case == "app":
+              import importlib.machinery, importlib.util
+              l = importlib.machinery.SourceFileLoader("p", "app/prompt.pyw"); sp = importlib.util.spec_from_loader("p", l)
+              m = importlib.util.module_from_spec(sp); l.exec_module(m)
+              m.find_claude_app = lambda: None
+              if len(sys.argv) > 2 and sys.argv[2] == "noicon": m.set_window_icon = lambda r: None
+              m.App(root)
+          end = time.time() + 4
+          while time.time() < end:
+              root.update(); time.sleep(0.02)
+          print("OK")
+          EOF
+          for c in bare icon polygon sysfont place scrollbar topmost families app "app noicon"; do
+            $PY case.py $c > out.txt 2>&1; code=$?
+            echo "== $c: exit $code $(tail -1 out.txt)"
+          done

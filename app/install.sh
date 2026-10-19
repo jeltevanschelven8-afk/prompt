@@ -108,6 +108,7 @@ EOF
 EOF
   say ""
   say "Done. Open Prompt from Launchpad or ~/Applications, or run:  open \"$APP\""
+  if [ -z "${PROMPT_NO_START:-}" ]; then open "$APP" && say "Starting Prompt…"; fi
 else
   BIN="$HOME/.local/bin"
   APPS="${XDG_DATA_HOME:-$HOME/.local/share}/applications"
@@ -132,4 +133,8 @@ EOF
   say ""
   say "Done. Start Prompt from your applications menu, or run:  prompt-app"
   case ":$PATH:" in *":$BIN:"*) ;; *) say "(Add $BIN to your PATH to use the prompt-app command.)";; esac
+  if [ -z "${PROMPT_NO_START:-}" ] && [ -n "${DISPLAY:-}${WAYLAND_DISPLAY:-}" ]; then
+    nohup "$BIN/prompt-app" >/dev/null 2>&1 &
+    say "Starting Prompt…"
+  fi
 fi

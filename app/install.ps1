@@ -68,3 +68,7 @@ if (-not (Test-Path $registry) -or (Get-Content $registry -Raw) -match 'OWNER') 
 & (Join-Path $src 'make_shortcuts.ps1')
 Write-Host ''
 Write-Host "Klaar: $dest\bin\Prompt.exe"
+if (-not $env:PROMPT_NO_START) {
+    Start-Process -FilePath (Join-Path $dest 'bin\Prompt.exe') -ArgumentList '-X', 'detach' -WorkingDirectory $dest
+    Write-Host 'Prompt wordt gestart. Je vindt hem voortaan in het Startmenu en op je bureaublad.'
+}

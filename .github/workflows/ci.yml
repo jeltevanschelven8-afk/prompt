@@ -49,6 +49,7 @@ jobs:
         shell: bash
         run: |
           export HOME="$RUNNER_TEMP/home" && mkdir -p "$HOME"
+          export PROMPT_NO_START=1
           bash app/install.sh
           if [ "$RUNNER_OS" = "macOS" ]; then
             test -x "$HOME/Applications/Prompt.app/Contents/MacOS/Prompt"

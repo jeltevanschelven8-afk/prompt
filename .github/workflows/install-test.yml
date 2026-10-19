@@ -96,13 +96,18 @@ jobs:
           cp "$GITHUB_WORKSPACE"/dl/Prompt-*-macos.zip .
           ditto -x -k Prompt-*-macos.zip .
           test -x "Prompt/Install Prompt.command"
-          "./Prompt/Install Prompt.command" < /dev/null
+          # Not started by the installer here, so the next step can start it with diagnostics on.
+          PROMPT_NO_START=1 "./Prompt/Install Prompt.command" < /dev/null
       - name: "Step 4: open Prompt from ~/Applications and take a screenshot"
         run: |
           test -d ~/Applications/Prompt.app
-          open ~/Applications/Prompt.app --args --market
+          open --env PROMPT_DEBUG=1 ~/Applications/Prompt.app --args --market
           sleep 15
+          D="$HOME/Library/Application Support/Prompt"
+          cat "$D/debug.log" 2>/dev/null || true
+          cat "$D/error.log" 2>/dev/null || true
           pgrep -f "prompt.pyw" > /dev/null || { echo "Prompt is not running"; exit 1; }
+          grep -q "mapped=1" "$D/debug.log" || { echo "Prompt window is not on screen"; exit 1; }
           screencapture -x macos.png
       - uses: actions/upload-artifact@v4
         with:
@@ -136,6 +141,9 @@ jobs:
           Start-Process "$env:APPDATA\Microsoft\Windows\Start Menu\Programs\Prompt.lnk"
           Start-Sleep -Seconds 12
           if (-not (Get-Process Prompt -ErrorAction SilentlyContinue)) { Get-Content "$env:LOCALAPPDATA\Programs\Prompt\error.log"; throw "Prompt is not running" }
+          $n = @(Get-Process Prompt -ErrorAction SilentlyContinue).Count
+          Write-Host "Prompt processes: $n"
+          if ($n -ne 1) { throw "Expected one Prompt, found $n" }
           Add-Type -AssemblyName System.Windows.Forms, System.Drawing
           $b = [System.Windows.Forms.Screen]::PrimaryScreen.Bounds
           $bmp = New-Object System.Drawing.Bitmap $b.Width, $b.Height

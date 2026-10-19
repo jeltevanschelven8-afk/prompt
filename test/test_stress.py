@@ -279,6 +279,28 @@ class IsolationTests(unittest.TestCase):
         self.assertIn("prompt-test-home-", str(app.LIBRARY_DIR))
 
 
+class SingleInstanceTests(unittest.TestCase):
+    """Regressie: op Windows konden twee Prompts dezelfde poort openen (dubbel venster bij snel twee keer starten)."""
+
+    def test_second_claim_fails(self):
+        import socket
+        with socket.socket() as probe:
+            probe.bind(("127.0.0.1", 0))
+            free = probe.getsockname()[1]
+        old = app.PORT
+        app.PORT = free
+        try:
+            first = app.claim_port()
+            try:
+                with self.assertRaises(OSError):
+                    app.claim_port()
+            finally:
+                first.close()
+            app.claim_port().close()  # na afsluiten is de poort weer vrij
+        finally:
+            app.PORT = old
+
+
 class ToggleAttacks(unittest.TestCase):
     def setUp(self):
         self.tmp = tempfile.TemporaryDirectory()

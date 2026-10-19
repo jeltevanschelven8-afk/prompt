@@ -1247,11 +1247,25 @@ def try_signal_existing(signal=True):
         return False
 
 
-def start_server(on_show):
+def claim_port():
+    """Claim de poort van Prompt meteen bij het opstarten. Lukt dat niet, dan draait er al een Prompt.
+    Op Windows exclusief: anders kunnen twee programma's dezelfde poort openen en krijg je twee vensters."""
     srv = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    srv.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-    srv.bind(("127.0.0.1", PORT))
-    srv.listen(5)
+    if IS_WINDOWS:
+        srv.setsockopt(socket.SOL_SOCKET, socket.SO_EXCLUSIVEADDRUSE, 1)
+    else:
+        srv.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+    try:
+        srv.bind(("127.0.0.1", PORT))
+        srv.listen(5)
+    except OSError:
+        srv.close()
+        raise
+    return srv
+
+
+def start_server(on_show, srv=None):
+    srv = srv or claim_port()
 
     def loop():
         while True:
@@ -3017,17 +3031,21 @@ def main():
     if try_signal_existing(signal=not watch):
         trace("andere instantie draait al; stoppen")
         return 0
+    try:
+        srv = claim_port()  # vóór het opbouwen van het venster, zodat een tweede start dit meteen ziet
+    except OSError as e:
+        trace(f"poort bezet ({e}); andere instantie naar voren halen")
+        try_signal_existing(signal=not watch)
+        return 0
     enable_dpi_awareness()
     root = tk.Tk()
     start_view = next((v for v in ("market", "settings") if f"--{v}" in args), None)
     app = App(root, start_view=start_view, hidden=watch)
-    try:
-        app._server = start_server(app.request_show)
-    except OSError as e:
-        trace(f"poort bezet ({e}); andere instantie naar voren halen")
-        root.destroy()
-        try_signal_existing()
-        return 0
+    app._server = start_server(app.request_show, srv)
+    root.after(2000, lambda: trace(
+        f"venster: tk={tk.TkVersion} state={root.state()} mapped={root.winfo_ismapped()} "
+        f"viewable={root.winfo_viewable()} geometry={root.geometry()} "
+        f"scherm={root.winfo_screenwidth()}x{root.winfo_screenheight()} items={len(app.items)}"))
     root.mainloop()
     return 0
 

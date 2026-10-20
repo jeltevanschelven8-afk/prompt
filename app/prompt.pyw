@@ -1319,6 +1319,7 @@ class ScrollArea(tk.Frame):
         self.sb = scrollbar
         self.top = 0
         self._job = None
+        self._when_sized = []
         self.inner = tk.Frame(self, bg=kw.get("bg"))
         self.inner.place(x=0, y=0, relwidth=1, width=-inset)
         self.bind("<Configure>", self._changed)
@@ -1331,8 +1332,19 @@ class ScrollArea(tk.Frame):
         if self._job is None:
             self._job = self.after_idle(self._apply)
 
+    def when_sized(self, callback):
+        """Roep callback aan zodra de inhoud een echte breedte heeft (meteen, als dat al zo is)."""
+        if self.inner.winfo_width() > 1:
+            callback()
+        elif callback not in self._when_sized:
+            self._when_sized.append(callback)
+
     def _apply(self):
         self._job = None
+        if self._when_sized and self.inner.winfo_width() > 1:
+            callbacks, self._when_sized = self._when_sized, []
+            for callback in callbacks:
+                callback()
         try:
             total, view = self._sizes()
             self.top = min(max(0, int(self.top)), max(0, total - view))
@@ -1788,23 +1800,24 @@ class App:
         """De scrollpositie terugzetten zodra Tk de nieuwe lijst heeft opgemeten."""
         area.after_idle(lambda: area.yview_moveto(position))
 
-    def wrap_to(self, label, container, minus=0, key=None):
+    def wrap_to(self, label, container, minus=0, key=None, guess=None):
         """Laat de tekst afbreken op de breedte van de container.
 
-        Elke nieuwe afbreekbreedte laat Tk de hele lijst opnieuw opmeten. Daarom: alleen bijwerken als de breedte
-        echt verandert, alle labels samen in één ronde (after_idle), en met `key` meteen de laatst bekende breedte
-        gebruiken zodat een opnieuw opgebouwde lijst niet nog eens hoeft te verspringen. Per label apart bijwerken
-        werd een kettingreactie van honderden opmaakrondes (seconden bij het starten op macOS met Tk 9)."""
+        Een nieuwe afbreekbreedte laat Tk de hele lijst opnieuw opmeten, en dat is op macOS met Tk 9 traag (seconden
+        voor een lange lijst). Daarom krijgt een label meteen een goede breedte (`guess`, of de laatst bekende voor
+        `key`), wordt hij alleen aangepast als de tekst echt niet past of er flink meer ruimte is, en gaan alle
+        aanpassingen samen in één ronde (after_idle)."""
         last = [None]
-        known = self._wrap_known.get(key) if key else None
-        if known:
-            last[0] = known
-            label.configure(wraplength=known)
+        start = guess if guess and guess > 1 else (self._wrap_known.get(key) if key else None)
+        if start:
+            start = max(120, int(start))
+            last[0] = start
+            label.configure(wraplength=start)
 
         def on_configure(event):
             width = max(120, event.width - minus)
-            if last[0] is not None and abs(width - last[0]) < 4:
-                return
+            if last[0] is not None and 0 <= width - last[0] < self.s(40):
+                return  # past al; een paar pixels extra ruimte is het opnieuw opmeten niet waard
             last[0] = width
             if key:
                 self._wrap_known[key] = width
@@ -2151,6 +2164,11 @@ class App:
     def rebuild(self):
         if not hasattr(self, "list_frame"):
             return
+        if self.list_frame.winfo_width() <= 1:
+            # Pas opbouwen als de lijst zijn breedte kent: dan krijgt elke beschrijving meteen de goede
+            # afbreekbreedte en hoeft Tk de lijst niet nog eens op te meten.
+            self.canvas.when_sized(self.rebuild)
+            return
         items = self.visible_items()
         self.build_skill_bar(items)
         self.build_filter_bar(items)
@@ -2198,6 +2216,8 @@ class App:
             hover.append(sw)
         text_col = tk.Frame(head, bg=C["surface"])
         text_col.pack(side="left", fill="both", expand=True)
+        right = sum(w.winfo_reqwidth() + self.s(8) for w in hover[2:])
+        text_w = self.list_frame.winfo_width() - 2 * self.s(2) - 2 - 2 * self.s(12) - right - self.s(4)
         title = tk.Frame(text_col, bg=C["surface"])
         title.pack(anchor="w", fill="x")
         cmd_lbl = tk.Label(title, text=it.command, font=self.f_cmd, bg=C["surface"],
@@ -2216,7 +2236,7 @@ class App:
             desc = tk.Label(text_col, text=it.description, font=self.f_small, bg=C["surface"], fg=C["muted"],
                             anchor="w", justify="left")
             desc.pack(anchor="w", fill="x", pady=(self.s(2), 0))
-            self.wrap_to(desc, text_col, key="row")
+            self.wrap_to(desc, text_col, key="row", guess=text_w)
             hover.append(desc)
         self.hoverable(hover, lambda: self.toggle(it))
         if is_open:
@@ -2510,6 +2530,9 @@ class App:
             # Pas opbouwen als de tab te zien is: dat scheelt honderden widgets bij het starten.
             self.market_dirty = True
             return
+        if self.m_list.winfo_width() <= 1:
+            self.m_canvas.when_sized(self.rebuild_market)
+            return
         self.market_dirty = False
         self.build_market_toolbar()
         y = self.m_canvas.yview()[0]
@@ -2561,6 +2584,8 @@ class App:
 
         text_col = tk.Frame(head, bg=C["surface"])
         text_col.pack(side="left", fill="both", expand=True)
+        right = sum(w.winfo_reqwidth() + self.s(8) for w in buttons.winfo_children()) + self.s(8)
+        text_w = self.m_list.winfo_width() - 2 * self.s(2) - 2 - 2 * self.s(12) - right - self.s(4)
         title = tk.Label(text_col, text="/" + name, font=self.f_cmd, bg=C["surface"], fg=C["accent_text"],
                          anchor="w")
         title.pack(anchor="w")
@@ -2568,7 +2593,7 @@ class App:
         desc = tk.Label(text_col, text=summary, font=self.f_small, bg=C["surface"], fg=C["muted"], anchor="w",
                         justify="left")
         desc.pack(anchor="w", fill="x", pady=(self.s(2), self.s(4)))
-        self.wrap_to(desc, text_col, key="market-row")
+        self.wrap_to(desc, text_col, key="market-row", guess=text_w)
         meta = tk.Frame(text_col, bg=C["surface"])
         meta.pack(anchor="w")
         badges = [(CATEGORY_NL[s["category"]].upper(), C["faint"])]

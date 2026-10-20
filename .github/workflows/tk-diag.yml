@@ -59,7 +59,35 @@ jobs:
               root.update(); time.sleep(0.02)
           print("OK")
           EOF
-          for c in bare icon polygon sysfont place scrollbar topmost families app "app noicon"; do
-            $PY case.py $c > out.txt 2>&1; code=$?
-            echo "== $c: exit $code $(tail -1 out.txt)"
+          export HOME_REAL="$HOME"
+          mkdir -p /tmp/h/.claude/skills/demo
+          printf -- '---
+name: demo
+description: Demo skill. Use when testing.
+---
+
+# Demo
+' > /tmp/h/.claude/skills/demo/SKILL.md
+          for c in app "app noicon"; do
+            HOME=/tmp/h $PY -X faulthandler case.py $c > out.txt 2>&1; code=$?
+            echo "== $c (with a skill): exit $code $(tail -1 out.txt)"; [ $code = 0 ] || grep -E 'File "' out.txt | head -8
           done
+      - name: Installed app, started three ways
+        run: |
+          export PROMPT_NO_START=1
+          bash app/install.sh > /dev/null
+          D="$HOME/Library/Application Support/Prompt"
+          run() {  # $1 label, rest = command
+            label=$1; shift
+            rm -f "$D/debug.log" "$D/debug-trace.log"
+            PROMPT_DEBUG=1 "$@" > /tmp/o.txt 2>&1 &
+            sleep 25
+            echo "== $label"; cat "$D/debug.log" 2>/dev/null | tail -2
+            [ -s "$D/debug-trace.log" ] && { echo "-- stuck:"; grep -E 'File "|Thread|Current' "$D/debug-trace.log" | head -20; }
+            tail -5 /tmp/o.txt
+            pkill -f prompt.pyw; sleep 2
+          }
+          PY=/Library/Frameworks/Python.framework/Versions/3.14/bin/python3
+          run "python directly" $PY "$D/prompt.pyw"
+          run "bundle executable" "$HOME/Applications/Prompt.app/Contents/MacOS/Prompt"
+          run "open Prompt.app" open --env PROMPT_DEBUG=1 -W "$HOME/Applications/Prompt.app"

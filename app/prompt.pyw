@@ -3027,6 +3027,13 @@ def trace(msg):
 def main():
     args = sys.argv[1:]
     watch = "--watch" in args
+    if os.environ.get("PROMPT_DEBUG") == "1":
+        # Loopt Prompt vast, dan staat na 20 seconden in debug-trace.log waar elke thread op dat moment was.
+        import faulthandler
+        try:
+            faulthandler.dump_traceback_later(20, file=open(APP_DIR / "debug-trace.log", "w", encoding="utf-8"))
+        except OSError:
+            pass
     trace(f"main start exe={sys.executable} argv={sys.argv} hosted={HOSTED} app_dir={APP_DIR}")
     if "--detach" in args:
         # Snelkoppeling of opstarten: starten, of het bestaande venster naar voren halen; keert direct terug.

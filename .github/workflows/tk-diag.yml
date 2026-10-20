@@ -19,51 +19,10 @@ jobs:
       - run: |
           curl -sSLo python.pkg https://www.python.org/ftp/python/3.14.8/python-3.14.8-macos11.pkg
           sudo installer -pkg python.pkg -target /
-      - name: Which Tk commands take the time?
+      - name: Bisect (Tk 9)
         run: |
           mkdir -p /tmp/h/.claude/skills/demo
           printf -- '---\nname: demo\ndescription: Demo skill. Use when testing.\n---\n\n# Demo\n' > /tmp/h/.claude/skills/demo/SKILL.md
-          cat > prof.py <<'EOF'
-          import time, sys, collections, tkinter as tk
-          import importlib.machinery, importlib.util
-          l = importlib.machinery.SourceFileLoader("p", "app/prompt.pyw"); sp = importlib.util.spec_from_loader("p", l)
-          m = importlib.util.module_from_spec(sp); l.exec_module(m)
-          m.find_claude_app = lambda: None
-          m.REGISTRY_FILE = m.Path("/tmp/h/none.json")
-          tot = collections.Counter(); n = collections.Counter()
-          class Timed:
-              def __init__(self, t): self._t = t
-              def call(self, *a):
-                  b = a[0] if len(a) == 1 and isinstance(a[0], tuple) else a
-                  a0 = str(b[0]) if b else ""; a1 = str(b[1]) if len(b) > 1 else ""
-                  k = ("widget " + a1) if a0.startswith(".") else (a0 + (" " + a1 if a0 in ("winfo", "wm", "pack", "place", "after", "font") else ""))
-                  t = time.perf_counter()
-                  try: return self._t.call(*a)
-                  finally: tot[k] += time.perf_counter() - t; n[k] += 1
-              def __getattr__(self, name): return getattr(self._t, name)
-          root = tk.Tk()
-          print("Tk", tk.TkVersion, root.tk.call("info", "patchlevel"))
-          root.tk = Timed(root.tk)
-          t = time.time(); app = m.App(root); print(f"App(): {time.time() - t:.2f}s")
-          for i in range(4):
-              tot.clear(); n.clear()
-              t = time.time(); root.update(); dt = time.time() - t
-              print(f"update {i}: {dt:.2f}s")
-              for k, v in tot.most_common(12): print(f"   {v:7.2f}s {n[k]:5d}x  {k}")
-          EOF
-          for PY in python /Library/Frameworks/Python.framework/Versions/3.14/bin/python3; do
-            echo "=== $PY"; HOME=/tmp/h $PY prof.py 2>&1 | head -60
+          for V in "" nowrap noflow noscrollcfg "nowrap noflow noscrollcfg" fewrows; do
+            VARIANT="$V" HOME=/tmp/h /Library/Frameworks/Python.framework/Versions/3.14/bin/python3 scripts/tk-bisect.py 2>&1 | tail -5
           done
-      - name: Native stack sample during the slow first draw (Tk 9)
-        run: |
-          HOME=/tmp/h /Library/Frameworks/Python.framework/Versions/3.14/bin/python3 prof.py > run.log 2>&1 &
-          PID=$!
-          sleep 8
-          sudo sample $PID 6 -file /tmp/sample.txt 2>&1 | tail -3 || true
-          sudo chmod 644 /tmp/sample.txt || true
-          wait $PID || true
-          head -5 run.log || true
-          echo "=== heaviest stack"
-          sed -n '/Call graph:/,/Total number in stack/p' /tmp/sample.txt | cut -c1-220 | head -150
-          echo "=== top of stack"
-          sed -n '/Sort by top of stack/,/Binary Images/p' /tmp/sample.txt | head -40

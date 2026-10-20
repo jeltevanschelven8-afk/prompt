@@ -18,6 +18,16 @@ if "noscrollcfg" in v:
         c.unbind("<Configure>"); inner.unbind("<Configure>")
         return c, inner
     m.App.make_scroll = make_scroll
+if "nowidth" in v or "noregion" in v:
+    orig2 = m.App.make_scroll
+    def make_scroll2(self, parent):
+        c, inner = orig2(self, parent)
+        if "nowidth" in v: c.unbind("<Configure>")
+        if "noregion" in v: inner.unbind("<Configure>")
+        return c, inner
+    m.App.make_scroll = make_scroll2
+    if "noregion" in v:
+        m.App.restore_scroll = lambda self, canvas, pos: None
 if "fewrows" in v:
     m.scan_all = (lambda f: (lambda: f()[:15]))(m.scan_all)
 cnt = collections.Counter()

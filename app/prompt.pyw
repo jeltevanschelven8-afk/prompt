@@ -1659,8 +1659,33 @@ class App:
         canvas.pack(side="left", fill="both", expand=True)
         inner = tk.Frame(canvas, bg=C["bg"])
         win = canvas.create_window((0, 0), window=inner, anchor="nw")
-        inner.bind("<Configure>", lambda e: canvas.configure(scrollregion=canvas.bbox("all")))
-        canvas.bind("<Configure>", lambda e: canvas.itemconfigure(win, width=e.width - self.s(8)))
+        # Scrollgebied en breedte één keer per ronde bijwerken, en alleen als ze echt veranderen. Direct bijwerken
+        # bij elke <Configure> liet Tk 9 op macOS het hele venster honderden keren hertekenen (30 s bij het starten).
+        state = {"job": None, "width": None, "region": None}
+
+        def sync():
+            state["job"] = None
+            try:
+                region = canvas.bbox("all")
+                if region and region != state["region"]:
+                    state["region"] = region
+                    canvas.configure(scrollregion=region)
+            except tk.TclError:
+                pass
+
+        def schedule(_=None):
+            if state["job"] is None:
+                state["job"] = canvas.after_idle(sync)
+
+        def on_canvas(event):
+            width = event.width - self.s(8)
+            if width > 1 and width != state["width"]:
+                state["width"] = width
+                canvas.itemconfigure(win, width=width)
+            schedule()
+
+        inner.bind("<Configure>", schedule)
+        canvas.bind("<Configure>", on_canvas)
         return canvas, inner
 
     def search_box(self, parent, var, placeholder, on_change, on_enter=None):

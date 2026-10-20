@@ -1494,6 +1494,8 @@ class App:
         self.run_bg(find_claude_app, self.on_claude_app_found, lambda e: None)
 
     def on_claude_app_found(self, app_id):
+        if app_id == self.claude_app:
+            return  # niets veranderd: de lijst niet voor niets opnieuw opbouwen
         self.claude_app = app_id
         self.rebuild()
 
@@ -2351,8 +2353,10 @@ class App:
             self.market_note = f"{label}  ·  bijgewerkt {time.strftime('%H:%M')}"
             if isinstance(source, HttpSource):
                 save_json(MARKET_CACHE, {"key": source.key, "saved": time.strftime("%d-%m-%Y %H:%M"), "skills": skills})
+            before = [it.description for it in self.items]
             self.items = apply_market_summaries(self.items, skills)
-            self.rebuild()
+            if [it.description for it in self.items] != before:
+                self.rebuild()
             self.rebuild_market()
 
         def fail(err):

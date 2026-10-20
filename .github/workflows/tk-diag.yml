@@ -19,36 +19,6 @@ jobs:
       - run: |
           curl -sSLo python.pkg https://www.python.org/ftp/python/3.14.8/python-3.14.8-macos11.pkg
           sudo installer -pkg python.pkg -target /
-      - name: Micro benchmark - what makes Tk 9 slow?
-        run: |
-          cat > bench.py <<'EOF'
-          import sys, time, tkinter as tk
-          def run(name, n, mode):
-              root = tk.Tk(); root.geometry("560x780")
-              if mode == "withdrawn": root.withdraw()
-              host = root
-              if mode == "canvas":
-                  c = tk.Canvas(root); c.pack(fill="both", expand=True)
-                  host = tk.Frame(c); c.create_window((0, 0), window=host, anchor="nw")
-              for i in range(n):
-                  f = tk.Frame(host, bg="#222"); f.pack(fill="x", pady=2)
-                  tk.Label(f, text=f"/command-{i}", bg="#222", fg="#eee").pack(side="left")
-                  tk.Label(f, text="Some description text that wraps " * 2, wraplength=300 if mode == "wrap" else 0,
-                           bg="#222", fg="#aaa").pack(side="left")
-              t = time.time(); root.update(); a = time.time() - t
-              b = 0
-              if mode == "withdrawn":
-                  t = time.time(); root.deiconify(); root.update(); b = time.time() - t
-              print(f"  {name:10s} n={n:4d} widgets={3*n:5d}: update {a:6.2f}s  deiconify {b:6.2f}s", flush=True)
-              root.destroy()
-          print("Tk", tk.TkVersion)
-          for n in (50, 100, 200):
-              run("plain", n, "plain")
-          run("canvas", 200, "canvas")
-          run("wrap", 200, "wrap")
-          run("withdrawn", 200, "withdrawn")
-          EOF
-          for PY in python /Library/Frameworks/Python.framework/Versions/3.14/bin/python3; do $PY bench.py; done
       - name: Which Tk commands take the time?
         run: |
           mkdir -p /tmp/h/.claude/skills/demo
@@ -84,3 +54,16 @@ jobs:
           for PY in python /Library/Frameworks/Python.framework/Versions/3.14/bin/python3; do
             echo "=== $PY"; HOME=/tmp/h $PY prof.py 2>&1 | head -60
           done
+      - name: Native stack sample during the slow first draw (Tk 9)
+        run: |
+          HOME=/tmp/h /Library/Frameworks/Python.framework/Versions/3.14/bin/python3 prof.py > run.log 2>&1 &
+          PID=$!
+          sleep 8
+          sample $PID 6 -file sample.txt >/dev/null 2>&1 || true
+          wait $PID || true
+          cat run.log | head -5
+          echo "=== heaviest stack"
+          sed -n '/Call graph:/,/Total number in stack/p' sample.txt | awk 'length($0) < 400' | grep -E "[0-9]+ " | sort -t' ' -k1 | head -0
+          sed -n '/Call graph:/,/Total number in stack/p' sample.txt | cut -c1-220 | head -150
+          echo "=== top of stack"
+          sed -n '/Sort by top of stack/,/Binary Images/p' sample.txt | head -40

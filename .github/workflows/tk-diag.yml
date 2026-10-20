@@ -48,7 +48,7 @@ jobs:
           run("wrap", 200, "wrap")
           run("withdrawn", 200, "withdrawn")
           EOF
-          for PY in python /Library/Frameworks/Python.framework/Versions/3.14/bin/python3; do timeout 300 $PY bench.py; done
+          for PY in python /Library/Frameworks/Python.framework/Versions/3.14/bin/python3; do $PY bench.py; done
       - name: Which Tk commands take the time?
         run: |
           mkdir -p /tmp/h/.claude/skills/demo

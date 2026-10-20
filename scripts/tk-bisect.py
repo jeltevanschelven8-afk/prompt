@@ -42,4 +42,19 @@ app = m.App(root)
 t = time.time(); root.update(); dt = time.time() - t
 print(f"{v or 'baseline':28s} first draw {dt:6.2f}s  callbacks {sum(cnt.values())}  rows {len(app.items)}", flush=True)
 for k, n in cnt.most_common(4): print("      ", n, k)
+
+def until(label, cond, limit=120):
+    t = time.time()
+    while not cond() and time.time() - t < limit:
+        root.update()
+    root.update()
+    print(f"      {label:24s} {time.time() - t:6.2f}s", flush=True)
+
+until("list ready", lambda: len(app.list_frame.winfo_children()) > 0)
+app.show_view("market")
+until("market tab ready", lambda: len(app.m_list.winfo_children()) > 3 and not app.market_loading)
+app.show_view("local")
+root.update()
+t0 = time.time(); app.search_var.set("skill maken"); until("search 'skill maken'", lambda: time.time() - t0 > 0.5)
+app.show_view("settings"); until("settings tab", lambda: True)
 root.destroy()

@@ -102,10 +102,13 @@ jobs:
         run: |
           test -d ~/Applications/Prompt.app
           open --env PROMPT_DEBUG=1 ~/Applications/Prompt.app --args --market
-          sleep 15
           D="$HOME/Library/Application Support/Prompt"
+          for i in $(seq 1 60); do grep -q "mapped=1" "$D/debug.log" 2>/dev/null && break; sleep 1; done
+          echo "waited ${i}s"
+          sleep 3
           cat "$D/debug.log" 2>/dev/null || true
           cat "$D/error.log" 2>/dev/null || true
+          cat "$D/debug-trace.log" 2>/dev/null | head -80 || true
           pgrep -f "prompt.pyw" > /dev/null || { echo "Prompt is not running"; exit 1; }
           grep -q "mapped=1" "$D/debug.log" || { echo "Prompt window is not on screen"; exit 1; }
           screencapture -x macos.png

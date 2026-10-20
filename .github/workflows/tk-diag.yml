@@ -16,72 +16,27 @@ jobs:
       - run: |
           curl -sSLo python.pkg https://www.python.org/ftp/python/3.14.8/python-3.14.8-macos11.pkg
           sudo installer -pkg python.pkg -target /
-      - name: Each feature in its own process
+      - name: Where does the start-up time go?
         run: |
           PY=/Library/Frameworks/Python.framework/Versions/3.14/bin/python3
-          cat > case.py <<'EOF'
-          import sys, time, tkinter as tk, tkinter.font as tkfont
-          from tkinter import ttk
-          case = sys.argv[1]
-          root = tk.Tk(); root.geometry("500x500")
-          if case == "icon":
-              img = tk.PhotoImage(file="app/icon.png"); root.iconphoto(True, img)
-          elif case == "polygon":
-              c = tk.Canvas(root, width=200, height=60, highlightthickness=0); c.pack()
-              c.create_polygon([10,10,190,10,190,50,10,50], smooth=True, fill="red", outline="blue")
-          elif case == "sysfont":
-              tk.Label(root, text="hallo", font=(".AppleSystemUIFont", 13, "bold")).pack()
-          elif case == "place":
-              f = tk.Frame(root, height=1); f.pack(fill="x")
-              ws = [tk.Label(f, text=f"chip {i}") for i in range(10)]
-              def layout(_=None):
-                  x = 0
-                  for w in ws: w.place(x=x, y=0); x += w.winfo_reqwidth()
-                  f.configure(height=30)
-              f.bind("<Configure>", layout); f.after_idle(layout)
-          elif case == "scrollbar":
-              s = ttk.Style(root); s.theme_use("clam")
-              s.configure("P.Vertical.TScrollbar", troughcolor="#fff", background="#eee", gripcount=0)
-              ttk.Scrollbar(root, style="P.Vertical.TScrollbar").pack(side="right", fill="y")
-          elif case == "topmost":
-              root.attributes("-topmost", False)
-          elif case == "families":
-              print(len(tkfont.families(root)))
-          elif case == "app":
-              import importlib.machinery, importlib.util
-              l = importlib.machinery.SourceFileLoader("p", "app/prompt.pyw"); sp = importlib.util.spec_from_loader("p", l)
-              m = importlib.util.module_from_spec(sp); l.exec_module(m)
-              m.find_claude_app = lambda: None
-              if len(sys.argv) > 2 and sys.argv[2] == "noicon": m.set_window_icon = lambda r: None
-              m.App(root)
-          end = time.time() + 4
-          while time.time() < end:
-              root.update(); time.sleep(0.02)
-          print("OK")
-          EOF
-          export HOME_REAL="$HOME"
           mkdir -p /tmp/h/.claude/skills/demo
           printf -- '---\nname: demo\ndescription: Demo skill. Use when testing.\n---\n\n# Demo\n' > /tmp/h/.claude/skills/demo/SKILL.md
-          for c in app "app noicon"; do
-            HOME=/tmp/h $PY -X faulthandler case.py $c > out.txt 2>&1; code=$?
-            echo "== $c (with a skill): exit $code $(tail -1 out.txt)"; [ $code = 0 ] || grep -E 'File "' out.txt | head -8
-          done
-      - name: Installed app, started three ways
-        run: |
-          export PROMPT_NO_START=1
-          bash app/install.sh > /dev/null
-          D="$HOME/Library/Application Support/Prompt"
-          run() {  # $1 label, rest = command
-            label=$1; shift
-            rm -f "$D/debug.log" "$D/debug-trace.log"
-            PROMPT_DEBUG=1 "$@" > /tmp/o.txt 2>&1 &
-            sleep 25
-            echo "== $label"; cat "$D/debug.log" 2>/dev/null | tail -2
-            [ -s "$D/debug-trace.log" ] && { echo "-- stuck:"; grep -E 'File "|Thread|Current' "$D/debug-trace.log" | head -20; }
-            tail -5 /tmp/o.txt
-            pkill -f prompt.pyw; sleep 2
-          }
-          PY=/Library/Frameworks/Python.framework/Versions/3.14/bin/python3
-          run "python directly" $PY "$D/prompt.pyw"
-          run "bundle executable" "$HOME/Applications/Prompt.app/Contents/MacOS/Prompt"
-          run "open Prompt.app" open --env PROMPT_DEBUG=1 -W "$HOME/Applications/Prompt.app"
+          cat > prof.py <<'EOF'
+          import cProfile, pstats, time, sys, tkinter as tk
+          import importlib.machinery, importlib.util
+          l = importlib.machinery.SourceFileLoader("p", "app/prompt.pyw"); sp = importlib.util.spec_from_loader("p", l)
+          m = importlib.util.module_from_spec(sp); l.exec_module(m)
+          m.find_claude_app = lambda: None
+          root = tk.Tk()
+          t = time.time(); pr = cProfile.Profile(); pr.enable()
+          app = m.App(root)
+          pr.disable(); print(f"App() took {time.time() - t:.2f}s")
+          pstats.Stats(pr).sort_stats("cumulative").print_stats(18)
+          pr2 = cProfile.Profile()
+          for i in range(12):
+              t = time.time(); pr2.enable(); root.update(); pr2.disable()
+              print(f"update {i}: {time.time() - t:.2f}s")
+          pstats.Stats(pr2).sort_stats("tottime").print_stats(15)
+          pstats.Stats(pr2).sort_stats("ncalls").print_stats(8)
+          EOF
+          HOME=/tmp/h $PY prof.py 2>&1 | grep -vE "^\s*$" | cut -c1-160 | head -120

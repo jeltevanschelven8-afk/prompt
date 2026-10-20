@@ -33,13 +33,14 @@ app.STATE_FILE = SANDBOX / "state.json"
 app.REGISTRY_FILE = SANDBOX / "registry.json"  # no online marketplace: use the bundled catalogue
 app.find_claude_app = lambda: None             # don't start PowerShell/ps during the test
 
-try:
-    import tkinter as tk
-    _root = tk.Tk()
-    _root.destroy()
-    HAS_DISPLAY = True
-except Exception:  # noqa: BLE001 - no display, no Tk
-    HAS_DISPLAY = False
+import subprocess
+import sys
+import tkinter as tk
+
+# Is there a screen? Ask a separate process: a second Tk interpreter in this process (probe, destroy, create again)
+# crashes Tk 9 on macOS, and the real app only ever makes one.
+HAS_DISPLAY = subprocess.run([sys.executable, "-c", "import tkinter; tkinter.Tk().destroy()"],
+                             capture_output=True, timeout=60).returncode == 0
 
 
 def pump(root, seconds):

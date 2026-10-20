@@ -1309,6 +1309,64 @@ def round_rect(canvas, x1, y1, x2, y2, r, **kw):
     return canvas.create_polygon(pts, smooth=True, **kw)
 
 
+class ScrollArea(tk.Frame):
+    """Scrollbaar gebied zonder Canvas: de inhoud (self.inner) wordt met place() verschoven binnen dit frame,
+    dat hem afknipt. Een Canvas met een venster-item op volle breedte liet Tk 9 op macOS het hele venster
+    honderden keren hertekenen (30 s bij het starten); dit doet hetzelfde met één verschuiving per ronde."""
+
+    def __init__(self, master, scrollbar, inset=0, **kw):
+        super().__init__(master, **kw)
+        self.sb = scrollbar
+        self.top = 0
+        self._job = None
+        self.inner = tk.Frame(self, bg=kw.get("bg"))
+        self.inner.place(x=0, y=0, relwidth=1, width=-inset)
+        self.bind("<Configure>", self._changed)
+        self.inner.bind("<Configure>", self._changed)
+
+    def _sizes(self):
+        return max(1, self.inner.winfo_reqheight()), max(1, self.winfo_height())
+
+    def _changed(self, _=None):
+        if self._job is None:
+            self._job = self.after_idle(self._apply)
+
+    def _apply(self):
+        self._job = None
+        try:
+            total, view = self._sizes()
+            self.top = min(max(0, int(self.top)), max(0, total - view))
+            if str(-self.top) != self.inner.place_info().get("y"):
+                self.inner.place_configure(y=-self.top)
+            self.sb.set(self.top / total, min(1.0, (self.top + view) / total))
+        except tk.TclError:
+            pass
+
+    def can_scroll(self):
+        total, view = self._sizes()
+        return total > view
+
+    def yview(self, *args):
+        """Zelfde aanroep als Canvas.yview: zonder argumenten de positie, anders vanuit de scrollbalk."""
+        if not args:
+            total, view = self._sizes()
+            return self.top / total, min(1.0, (self.top + view) / total)
+        if args[0] == "moveto":
+            self.yview_moveto(float(args[1]))
+        elif args[0] == "scroll":
+            self.yview_scroll(int(args[1]), args[2])
+
+    def yview_moveto(self, fraction):
+        self.top = float(fraction) * self._sizes()[0]
+        self._apply()
+
+    def yview_scroll(self, number, what="units"):
+        view = self._sizes()[1]
+        step = {"pages": view * 0.9, "pixels": 1}.get(what, max(20, view / 10))
+        self.top += number * step
+        self._apply()
+
+
 class Pill(tk.Canvas):
     """Afgeronde knop. kind: primary | secondary | ghost | chip | nav | ok"""
 
@@ -1652,41 +1710,12 @@ class App:
     def make_scroll(self, parent):
         body = tk.Frame(parent, bg=C["bg"])
         body.pack(fill="both", expand=True, padx=(self.s(14), self.s(4)))
-        canvas = tk.Canvas(body, bg=C["bg"], highlightthickness=0, bd=0)
-        sb = ttk.Scrollbar(body, orient="vertical", command=canvas.yview, style="Prompt.Vertical.TScrollbar")
-        canvas.configure(yscrollcommand=sb.set)
+        sb = ttk.Scrollbar(body, orient="vertical", style="Prompt.Vertical.TScrollbar")
         sb.pack(side="right", fill="y")
-        canvas.pack(side="left", fill="both", expand=True)
-        inner = tk.Frame(canvas, bg=C["bg"])
-        win = canvas.create_window((0, 0), window=inner, anchor="nw")
-        # Scrollgebied en breedte één keer per ronde bijwerken, en alleen als ze echt veranderen. Direct bijwerken
-        # bij elke <Configure> liet Tk 9 op macOS het hele venster honderden keren hertekenen (30 s bij het starten).
-        state = {"job": None, "width": None, "region": None}
-
-        def sync():
-            state["job"] = None
-            try:
-                region = canvas.bbox("all")
-                if region and region != state["region"]:
-                    state["region"] = region
-                    canvas.configure(scrollregion=region)
-            except tk.TclError:
-                pass
-
-        def schedule(_=None):
-            if state["job"] is None:
-                state["job"] = canvas.after_idle(sync)
-
-        def on_canvas(event):
-            width = event.width - self.s(8)
-            if width > 1 and width != state["width"]:
-                state["width"] = width
-                canvas.itemconfigure(win, width=width)
-            schedule()
-
-        inner.bind("<Configure>", schedule)
-        canvas.bind("<Configure>", on_canvas)
-        return canvas, inner
+        area = ScrollArea(body, sb, inset=self.s(8), bg=C["bg"])
+        sb.configure(command=area.yview)
+        area.pack(side="left", fill="both", expand=True)
+        return area, area.inner
 
     def search_box(self, parent, var, placeholder, on_change, on_enter=None):
         box = tk.Frame(parent, bg=C["field"], highlightthickness=1, highlightbackground=C["border"],
@@ -1754,15 +1783,9 @@ class App:
         frame.bind("<Configure>", layout)
         frame.after_idle(layout)
 
-    def restore_scroll(self, canvas, position):
-        """Scrollgebied bijwerken en de scrollpositie terugzetten zodra Tk de nieuwe lijst heeft opgemeten."""
-        def apply():
-            try:
-                canvas.configure(scrollregion=canvas.bbox("all"))
-                canvas.yview_moveto(position)
-            except tk.TclError:
-                pass
-        canvas.after_idle(apply)
+    def restore_scroll(self, area, position):
+        """De scrollpositie terugzetten zodra Tk de nieuwe lijst heeft opgemeten."""
+        area.after_idle(lambda: area.yview_moveto(position))
 
     def wrap_to(self, label, container, minus=0):
         """Laat de tekst afbreken op de breedte van de container.
@@ -3014,18 +3037,17 @@ class App:
             self.root.after(WATCH_MS, self.watch_claude)
 
     def on_mousewheel(self, event):
-        if IS_MAC:
-            step = -event.delta  # trackpad/muis op macOS: kleine stappen
+        if IS_MAC and abs(event.delta) < 120:
+            self.scroll_active(-event.delta * 6, "pixels")  # trackpad op macOS: kleine, vloeiende stappen
         else:
-            step = int(-event.delta / 120) or (-1 if event.delta > 0 else 1)
-        self.scroll_active(step)
+            self.scroll_active(int(-event.delta / 120) or (-1 if event.delta > 0 else 1))
 
-    def scroll_active(self, step):
-        canvas = {"market": getattr(self, "m_canvas", None), "local": getattr(self, "canvas", None),
-                  "settings": getattr(self, "settings_canvas", None)}.get(self.view)
+    def scroll_active(self, step, what="units"):
+        area = {"market": getattr(self, "m_canvas", None), "local": getattr(self, "canvas", None),
+                "settings": getattr(self, "settings_canvas", None)}.get(self.view)
         try:
-            if step and canvas and canvas.bbox("all") and canvas.bbox("all")[3] > canvas.winfo_height():
-                canvas.yview_scroll(step, "units")
+            if step and area and area.can_scroll():
+                area.yview_scroll(step, what)
         except tk.TclError:
             pass
 

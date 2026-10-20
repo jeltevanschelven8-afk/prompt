@@ -23,6 +23,6 @@ jobs:
         run: |
           mkdir -p /tmp/h/.claude/skills/demo
           printf -- '---\nname: demo\ndescription: Demo skill. Use when testing.\n---\n\n# Demo\n' > /tmp/h/.claude/skills/demo/SKILL.md
-          for V in nowidth noregion "nowidth noregion" "nowrap nowidth"; do
+          for V in "" nowrap; do
             VARIANT="$V" HOME=/tmp/h /Library/Frameworks/Python.framework/Versions/3.14/bin/python3 scripts/tk-bisect.py 2>&1 | tail -5
           done

@@ -49,7 +49,7 @@ elif HOSTED:
 else:
     APP_DIR = Path(__file__).resolve().parent
 APP_NAME = "Prompt"
-APP_VERSION = "2.0"
+APP_VERSION = "2.0.1"
 BUILTIN_FILE = APP_DIR / "builtin_commands.json"
 UITLEG_FILE = APP_DIR / "uitleg.json"
 STATE_FILE = APP_DIR / "state.json"
@@ -643,16 +643,77 @@ def project_paths():
     return sorted(result, key=lambda p: p.name.lower())
 
 
+def claude_app_dirs():
+    """Datamappen van de Claude-desktopapp (daar staan de plugins die je in de app hebt aangezet)."""
+    if IS_WINDOWS:
+        dirs = [Path(os.environ["APPDATA"]) / "Claude"] if os.environ.get("APPDATA") else []
+        if os.environ.get("LOCALAPPDATA"):
+            dirs += [p / "LocalCache" / "Roaming" / "Claude"
+                     for p in Path(os.environ["LOCALAPPDATA"], "Packages").glob("Claude_*")]
+        return dirs
+    if IS_MAC:
+        return [HOME / "Library" / "Application Support" / "Claude"]
+    return [HOME / ".config" / "Claude"]
+
+
+_PLUGIN_CACHE = {"time": 0.0, "names": None}
+
+
+def installed_plugin_skills():
+    """Namen van skills en commands uit plugins die echt op deze computer staan: Claude Code
+    (~/.claude/plugins) en de Claude-app. Vijf minuten bewaard, want zoeken op schijf kost tijd."""
+    if _PLUGIN_CACHE["names"] is not None and time.time() - _PLUGIN_CACHE["time"] < 300:
+        return _PLUGIN_CACHE["names"]
+    names = set()
+
+    def collect(folder):
+        try:
+            for child in folder.iterdir():
+                if folder.name == "skills" and (child / "SKILL.md").is_file():
+                    names.add(child.name)
+                elif folder.name == "commands" and child.suffix == ".md":
+                    names.add(child.stem)
+        except OSError:
+            pass
+
+    patterns = []
+    for d in claude_app_dirs():
+        patterns += [(d / "local-agent-mode-sessions" / "skills-plugin", "*/*/skills"),
+                     (d / "rpm", "*/*/*/skills"), (d / "rpm", "*/*/*/commands")]
+    for root, pattern in patterns:
+        if root.is_dir():
+            for folder in root.glob(pattern):
+                collect(folder)
+    plugins = CLAUDE_DIR / "plugins"
+    if plugins.is_dir():
+        for path, dirs, _files in os.walk(plugins):
+            depth = len(Path(path).relative_to(plugins).parts)
+            if depth >= 7:
+                dirs[:] = []
+            for d in ("skills", "commands"):
+                if d in dirs:
+                    collect(Path(path) / d)
+    _PLUGIN_CACHE.update(time=time.time(), names=names)
+    return names
+
+
 def load_builtin():
     items = []
     try:
         data = json.loads(read_text(BUILTIN_FILE) or "{}")
     except ValueError:
         return items
+    plugins = None
     for group in data.get("groups", []):
         cat = group.get("category") or CAT_BUILTIN
         for c in group.get("commands", []):
             cmd = c.get("command", "").strip()
+            if ":" in cmd:
+                # Plugin-command (/plugin:skill): alleen tonen als die plugin hier geïnstalleerd is.
+                if plugins is None:
+                    plugins = installed_plugin_skills()
+                if cmd.rsplit(":", 1)[1] not in plugins:
+                    continue
             if cmd:
                 items.append(Cmd(cmd, c.get("description", ""), cat, str(BUILTIN_FILE),
                                  uitleg=c.get("uitleg", ""), wanneer=c.get("wanneer", ""),

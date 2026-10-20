@@ -1,5 +1,12 @@
 **Prompt**: all your Claude Code commands and skills one click away, choose which skills Claude loads, and a marketplace with 55 skills. For Windows, macOS and Linux.
 
+## What's new in 2.0.1
+
+- **Much faster start on macOS.** With Python from python.org (Tk 9) Prompt took about 30 seconds to show its window; now it is about a second.
+- **No more double Prompt windows on Windows** when it is started twice at the same moment.
+- **Only plugins you actually have** are listed under *Plugins*; built-in Claude Code commands are always shown.
+- The macOS installer no longer reports an error when it is run without a keyboard (for example from a script).
+
 ## Which file do I need?
 
 | Your computer | Download |

@@ -268,6 +268,34 @@ class SearchTests(unittest.TestCase):
         self.assertFalse(app.within_one_edit("abc", "xyz"))
 
 
+class PluginTests(unittest.TestCase):
+    def setUp(self):
+        self._dirs = app.claude_app_dirs
+        app.claude_app_dirs = lambda: [SANDBOX / "ClaudeApp"]  # never look at this computer's real Claude app
+        app._PLUGIN_CACHE["names"] = None
+
+    def tearDown(self):
+        app.claude_app_dirs = self._dirs
+        app._PLUGIN_CACHE["names"] = None
+
+    def test_plugin_commands_only_when_installed(self):
+        """A fresh computer must not list plugins it does not have; built-in commands always show."""
+        commands = {it.command for it in app.load_builtin()}
+        self.assertIn("/help", commands)
+        self.assertFalse([c for c in commands if ":" in c])
+        skill = app.CLAUDE_DIR / "plugins" / "cache" / "mkt" / "engineering" / "1.0" / "skills" / "tech-debt"
+        skill.mkdir(parents=True)
+        (skill / "SKILL.md").write_text("---\nname: tech-debt\n---\n", encoding="utf-8")
+        desktop = SANDBOX / "ClaudeApp" / "local-agent-mode-sessions" / "skills-plugin" / "a" / "b" / "skills" / "docx"
+        desktop.mkdir(parents=True)
+        (desktop / "SKILL.md").write_text("---\nname: docx\n---\n", encoding="utf-8")
+        app._PLUGIN_CACHE["names"] = None
+        commands = {it.command for it in app.load_builtin()}
+        self.assertIn("/engineering:tech-debt", commands)
+        self.assertIn("/anthropic-skills:docx", commands)
+        self.assertNotIn("/anthropic-skills:pdf", commands)
+
+
 class SettingsTests(unittest.TestCase):
     def test_defaults_and_bad_values(self):
         with tempfile.TemporaryDirectory() as tmp:

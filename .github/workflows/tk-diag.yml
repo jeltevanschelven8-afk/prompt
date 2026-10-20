@@ -1,4 +1,4 @@
-# Temporary: find which Tk feature crashes Tk 9 on macOS.
+# Temporary: find which Tk calls make the first draw slow on macOS.
 name: Tk diagnose
 
 on:
@@ -13,30 +13,44 @@ jobs:
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
       - run: |
           curl -sSLo python.pkg https://www.python.org/ftp/python/3.14.8/python-3.14.8-macos11.pkg
           sudo installer -pkg python.pkg -target /
-      - name: Where does the start-up time go?
+      - name: Which Tk commands take the time?
         run: |
-          PY=/Library/Frameworks/Python.framework/Versions/3.14/bin/python3
           mkdir -p /tmp/h/.claude/skills/demo
           printf -- '---\nname: demo\ndescription: Demo skill. Use when testing.\n---\n\n# Demo\n' > /tmp/h/.claude/skills/demo/SKILL.md
           cat > prof.py <<'EOF'
-          import cProfile, pstats, time, sys, tkinter as tk
+          import time, sys, collections, tkinter as tk
           import importlib.machinery, importlib.util
           l = importlib.machinery.SourceFileLoader("p", "app/prompt.pyw"); sp = importlib.util.spec_from_loader("p", l)
           m = importlib.util.module_from_spec(sp); l.exec_module(m)
           m.find_claude_app = lambda: None
+          m.REGISTRY_FILE = m.Path("/tmp/h/none.json")
+          tot = collections.Counter(); n = collections.Counter()
+          class Timed:
+              def __init__(self, t): self._t = t
+              def call(self, *a):
+                  b = a[0] if len(a) == 1 and isinstance(a[0], tuple) else a
+                  a0 = str(b[0]) if b else ""; a1 = str(b[1]) if len(b) > 1 else ""
+                  k = ("widget " + a1) if a0.startswith(".") else (a0 + (" " + a1 if a0 in ("winfo", "wm", "pack", "place", "after", "font") else ""))
+                  t = time.perf_counter()
+                  try: return self._t.call(*a)
+                  finally: tot[k] += time.perf_counter() - t; n[k] += 1
+              def __getattr__(self, name): return getattr(self._t, name)
           root = tk.Tk()
-          t = time.time(); pr = cProfile.Profile(); pr.enable()
-          app = m.App(root)
-          pr.disable(); print(f"App() took {time.time() - t:.2f}s")
-          pstats.Stats(pr).sort_stats("cumulative").print_stats(18)
-          pr2 = cProfile.Profile()
-          for i in range(12):
-              t = time.time(); pr2.enable(); root.update(); pr2.disable()
-              print(f"update {i}: {time.time() - t:.2f}s")
-          pstats.Stats(pr2).sort_stats("tottime").print_stats(15)
-          pstats.Stats(pr2).sort_stats("ncalls").print_stats(8)
+          print("Tk", tk.TkVersion, root.tk.call("info", "patchlevel"))
+          root.tk = Timed(root.tk)
+          t = time.time(); app = m.App(root); print(f"App(): {time.time() - t:.2f}s")
+          for i in range(4):
+              tot.clear(); n.clear()
+              t = time.time(); root.update(); dt = time.time() - t
+              print(f"update {i}: {dt:.2f}s")
+              for k, v in tot.most_common(12): print(f"   {v:7.2f}s {n[k]:5d}x  {k}")
           EOF
-          HOME=/tmp/h $PY prof.py 2>&1 | grep -vE "^\s*$" | cut -c1-160 | head -120
+          for PY in python /Library/Frameworks/Python.framework/Versions/3.14/bin/python3; do
+            echo "=== $PY"; HOME=/tmp/h $PY prof.py 2>&1 | head -60
+          done

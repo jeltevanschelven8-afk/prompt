@@ -1470,7 +1470,10 @@ class App:
         self.load_state()
         root.minsize(self.s(440), self.s(420))
         root.protocol("WM_DELETE_WINDOW", self.on_close)
-        root.bind("<Configure>", self.on_configure)
+        # Alleen het venster zelf, niet elk kindwidget: een binding op root geldt in Tk ook voor alle widgets
+        # erin, en dan riep elke maatverandering Python aan (duizenden keren bij het starten, 27 s op macOS).
+        root.bindtags(("PromptWindow",) + root.bindtags())
+        root.bind_class("PromptWindow", "<Configure>", self.on_configure)
         root.bind_all("<MouseWheel>", self.on_mousewheel)
         root.bind_all("<Button-4>", lambda e: self.scroll_active(-3))  # Linux: wieltje omhoog
         root.bind_all("<Button-5>", lambda e: self.scroll_active(3))   # Linux: wieltje omlaag
@@ -1622,6 +1625,8 @@ class App:
         if view == "market":
             if not self.market_loaded:
                 self.load_market()
+            if getattr(self, "market_dirty", False):
+                self.rebuild_market()
             self.update_market_info()
             self.m_entry.focus_set()
         elif view == "local":
@@ -1733,7 +1738,23 @@ class App:
         canvas.after_idle(apply)
 
     def wrap_to(self, label, container, minus=0):
-        container.bind("<Configure>", lambda e: label.configure(wraplength=max(120, e.width - minus)), add="+")
+        """Laat de tekst afbreken op de breedte van de container.
+
+        Alleen bijwerken als de breedte echt verandert: elke aanpassing laat Tk de hele lijst opnieuw opmeten,
+        en met honderden labels werd dat een kettingreactie (27 s bij het starten op macOS met Tk 9)."""
+        last = [None]
+
+        def on_configure(event):
+            width = max(120, event.width - minus)
+            if last[0] is not None and abs(width - last[0]) < 4:
+                return
+            last[0] = width
+            try:
+                label.configure(wraplength=width)
+            except tk.TclError:
+                pass
+
+        container.bind("<Configure>", on_configure, add="+")
 
     def card(self, parent):
         row = tk.Frame(parent, bg=C["surface"], highlightbackground=C["border"], highlightthickness=1)
@@ -2415,8 +2436,13 @@ class App:
     def rebuild_market(self):
         if not hasattr(self, "m_list"):
             return
-        self.build_market_toolbar()
         self.update_nav()
+        if self.view != "market":
+            # Pas opbouwen als de tab te zien is: dat scheelt honderden widgets bij het starten.
+            self.market_dirty = True
+            return
+        self.market_dirty = False
+        self.build_market_toolbar()
         y = self.m_canvas.yview()[0]
         for w in self.m_list.winfo_children():
             w.destroy()

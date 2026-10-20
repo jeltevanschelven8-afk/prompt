@@ -1516,6 +1516,7 @@ class App:
 
         self.claude_running = False if hidden else claude_is_running()
         self.claude_app = None
+        self._wrap_known, self._wrap_pending, self._wrap_job = {}, {}, None
         self.claude_cli = shutil.which("claude")
         self._show_requested = False
         self._save_job = None
@@ -1787,24 +1788,40 @@ class App:
         """De scrollpositie terugzetten zodra Tk de nieuwe lijst heeft opgemeten."""
         area.after_idle(lambda: area.yview_moveto(position))
 
-    def wrap_to(self, label, container, minus=0):
+    def wrap_to(self, label, container, minus=0, key=None):
         """Laat de tekst afbreken op de breedte van de container.
 
-        Alleen bijwerken als de breedte echt verandert: elke aanpassing laat Tk de hele lijst opnieuw opmeten,
-        en met honderden labels werd dat een kettingreactie (27 s bij het starten op macOS met Tk 9)."""
+        Elke nieuwe afbreekbreedte laat Tk de hele lijst opnieuw opmeten. Daarom: alleen bijwerken als de breedte
+        echt verandert, alle labels samen in één ronde (after_idle), en met `key` meteen de laatst bekende breedte
+        gebruiken zodat een opnieuw opgebouwde lijst niet nog eens hoeft te verspringen. Per label apart bijwerken
+        werd een kettingreactie van honderden opmaakrondes (seconden bij het starten op macOS met Tk 9)."""
         last = [None]
+        known = self._wrap_known.get(key) if key else None
+        if known:
+            last[0] = known
+            label.configure(wraplength=known)
 
         def on_configure(event):
             width = max(120, event.width - minus)
             if last[0] is not None and abs(width - last[0]) < 4:
                 return
             last[0] = width
+            if key:
+                self._wrap_known[key] = width
+            self._wrap_pending[label] = width
+            if self._wrap_job is None:
+                self._wrap_job = self.root.after_idle(self._apply_wraps)
+
+        container.bind("<Configure>", on_configure, add="+")
+
+    def _apply_wraps(self):
+        self._wrap_job = None
+        pending, self._wrap_pending = self._wrap_pending, {}
+        for label, width in pending.items():
             try:
                 label.configure(wraplength=width)
             except tk.TclError:
-                pass
-
-        container.bind("<Configure>", on_configure, add="+")
+                pass  # label is intussen weggegooid
 
     def card(self, parent):
         row = tk.Frame(parent, bg=C["surface"], highlightbackground=C["border"], highlightthickness=1)
@@ -2199,7 +2216,7 @@ class App:
             desc = tk.Label(text_col, text=it.description, font=self.f_small, bg=C["surface"], fg=C["muted"],
                             anchor="w", justify="left")
             desc.pack(anchor="w", fill="x", pady=(self.s(2), 0))
-            self.wrap_to(desc, text_col)
+            self.wrap_to(desc, text_col, key="row")
             hover.append(desc)
         self.hoverable(hover, lambda: self.toggle(it))
         if is_open:
@@ -2551,7 +2568,7 @@ class App:
         desc = tk.Label(text_col, text=summary, font=self.f_small, bg=C["surface"], fg=C["muted"], anchor="w",
                         justify="left")
         desc.pack(anchor="w", fill="x", pady=(self.s(2), self.s(4)))
-        self.wrap_to(desc, text_col)
+        self.wrap_to(desc, text_col, key="market-row")
         meta = tk.Frame(text_col, bg=C["surface"])
         meta.pack(anchor="w")
         badges = [(CATEGORY_NL[s["category"]].upper(), C["faint"])]

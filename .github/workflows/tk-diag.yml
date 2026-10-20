@@ -61,13 +61,7 @@ jobs:
           EOF
           export HOME_REAL="$HOME"
           mkdir -p /tmp/h/.claude/skills/demo
-          printf -- '---
-name: demo
-description: Demo skill. Use when testing.
----
-
-# Demo
-' > /tmp/h/.claude/skills/demo/SKILL.md
+          printf -- '---\nname: demo\ndescription: Demo skill. Use when testing.\n---\n\n# Demo\n' > /tmp/h/.claude/skills/demo/SKILL.md
           for c in app "app noicon"; do
             HOME=/tmp/h $PY -X faulthandler case.py $c > out.txt 2>&1; code=$?
             echo "== $c (with a skill): exit $code $(tail -1 out.txt)"; [ $code = 0 ] || grep -E 'File "' out.txt | head -8
